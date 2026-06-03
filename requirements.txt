@@ -1,0 +1,14 @@
+# Python packages this project needs.
+# Install everything with:   pip install -r requirements.txt
+#
+# Why each one:
+numpy>=1.24        # fast number/array math (the backbone of everything)
+pandas>=2.0        # tables of data (rows = samples, columns = features)
+scikit-learn>=1.3  # ready-made machine-learning models (Random Forest, etc.) + metrics
+matplotlib>=3.7    # plotting (we use it later for the error-grid charts)
+PyWavelets>=1.5    # db4 Discrete Wavelet Transform (paper Section II-B, Level 2)
+antropy>=0.1.6     # entropy & fractal-dimension features (Higuchi FD, spectral entropy)
+nolds>=0.5.2       # nonlinear measures (correlation dimension, sample entropy)
+scipy>=1.10        # signal filtering (bandpass) + statistics (kurtosis, skew)
+joblib>=1.3        # save/load the trained model to a .pkl file (deployment)
+streamlit>=1.30    # the local web-app demo (app.py)

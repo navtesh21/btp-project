@@ -1,0 +1,28 @@
+# ---- Large data (do NOT commit; ~10 GB, and D1NAMO has its own license) ----
+data/
+
+# ---- Trained model (130 MB, exceeds GitHub's 100 MB file limit; regenerate with train.py) ----
+bg_model.pkl
+*.pkl
+
+# ---- Copyrighted paper (IEEE) — do not redistribute. Keep local only. ----
+*.pdf
+paper.txt
+
+# ---- Logs / scratch ----
+*.log
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
