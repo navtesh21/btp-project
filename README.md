@@ -115,7 +115,7 @@ streamlit run app.py        # launch the demo web app at http://localhost:8501
 
 ## Learning the project
 
-The repository is written to be read, not just run:
+Three documents explain the project alongside the code:
 
 - [`explain.md`](explain.md) explains every file in plain English, assuming no machine-learning background.
 - [`MATH.md`](MATH.md) derives every formula from zero (ensembles, fuzzy measures, the Sugeno-λ measure, the Choquet integral, the DWT and the 10 features, RMSE/MARD), with a hand-checkable example.
@@ -125,5 +125,3 @@ The repository is written to be read, not just run:
 
 - Method: Li et al., IEEE TNNLS 2024 (cited above). Authors' code: <https://github.com/SIATCAS/SFF-WCIM>.
 - Data: the open D1NAMO dataset, Dubosson et al., Informatics in Medicine Unlocked, 2018.
-
-Built as a B.Tech project, with an emphasis on understanding every step.
