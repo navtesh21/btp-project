@@ -1,4 +1,4 @@
-# MATH.md — Every Formula in This Project, Explained from Zero
+# MATH.md: every formula in this project, explained from zero
 
 > This is the companion to `explain.md`. Where `explain.md` explains the *code*, this file
 > explains the **math**. We derive every formula, define every symbol, and end with a
@@ -6,7 +6,7 @@
 >
 > **How to read the formulas.** They're written in LaTeX, which renders as proper math on
 > GitHub and in VS Code (install the "Markdown+Math" or use the built-in preview). If you
-> ever see raw `$$...$$`, just read the plain-English breakdown right below it — every
+> ever see raw `$$...$$`, just read the plain-English breakdown right below it, every
 > formula has one.
 
 ---
@@ -15,13 +15,13 @@
 
 0. [Notation: the symbols you'll see](#0-notation-the-symbols-youll-see)
 1. [The base models (RF, GB, Bagging)](#1-the-base-models)
-2. [Fuzzy measures (capacities) — the axioms](#2-fuzzy-measures-capacities)
-3. [The Sugeno λ-measure — and where the λ-equation comes from](#3-the-sugeno-λ-measure)
+2. [Fuzzy measures (capacities), the axioms](#2-fuzzy-measures-capacities)
+3. [The Sugeno λ-measure, and where the λ-equation comes from](#3-the-sugeno-λ-measure)
 4. [The Choquet integral (paper eq. 13)](#4-the-choquet-integral-paper-eq-13)
-5. [Weight-based multimodel fusion (paper eqs. 14–15)](#5-weight-based-multimodel-fusion-paper-eqs-1415)
-6. [The metrics: RMSE & MARD (paper eqs. 16–17)](#6-the-metrics-rmse--mard-paper-eqs-1617)
-7. [Temporal statistical features — DWT + the 10 features (paper Section II-B)](#7-temporal-statistical-features--dwt--the-10-features-paper-section-ii-b)
-8. [Resources — where to actually learn all of this](#8-resources--where-to-actually-learn-all-of-this)
+5. [Weight-based multimodel fusion (paper eqs. 14 to 15)](#5-weight-based-multimodel-fusion-paper-eqs-1415)
+6. [The metrics: RMSE & MARD (paper eqs. 16 to 17)](#6-the-metrics-rmse--mard-paper-eqs-1617)
+7. [Temporal statistical features, DWT + the 10 features (paper Section II-B)](#7-temporal-statistical-features--dwt--the-10-features-paper-section-ii-b)
+8. [Resources, where to actually learn all of this](#8-resources--where-to-actually-learn-all-of-this)
 
 ---
 
@@ -46,7 +46,7 @@
 
 ## 1. The base models
 
-You don't need to derive these by hand — `scikit-learn` does — but you should know the
+You don't need to derive these by hand, `scikit-learn` does, but you should know the
 idea behind each. All three combine many **decision trees**.
 
 ### 1.1 A regression decision tree
@@ -62,13 +62,13 @@ $$\text{MSE}(S) = \frac{1}{|S|}\sum_{k \in S}\big(y_k - \bar{y}_S\big)^2, \qquad
 - $\bar{y}_S$ = the average target in the group (this is what the leaf predicts).
 - The split chosen is the one minimizing the **weighted** MSE of the left+right children.
 
-One tree is **high variance** — wiggle the data a little and it changes a lot. The three
+One tree is **high variance**, wiggle the data a little and it changes a lot. The three
 ensembles each tame this differently.
 
 ### 1.2 Bagging (Bootstrap AGGregating)
 
 Train $B$ trees, each on a **bootstrap sample** (draw $n$ rows *with replacement* from the
-$n$ training rows — some rows appear twice, some not at all). Average their predictions:
+$n$ training rows, some rows appear twice, some not at all). Average their predictions:
 
 $$\hat{y}_{\text{bag}}(x) = \frac{1}{B}\sum_{b=1}^{B} T_b(x)$$
 
@@ -93,7 +93,7 @@ $$F_0(x) = \bar{y}, \qquad F_m(x) = F_{m-1}(x) + \nu\, h_m(x)$$
 
 - $F_m(x)$ = the model's prediction after $m$ trees.
 - $\nu$ (the **learning rate**, e.g. 0.05) = how big each correction is allowed to be.
-- $h_m$ = a new tree trained to predict the **negative gradient** of the loss — for the
+- $h_m$ = a new tree trained to predict the **negative gradient** of the loss, for the
   squared-error loss $L=\tfrac12(y-F)^2$ that gradient is simply the **residual**
   $y - F_{m-1}(x)$ (how wrong we still are). So each tree literally learns "what's left to
   fix." This is **gradient descent, but in the space of functions.**
@@ -113,7 +113,7 @@ A **fuzzy measure** (a.k.a. **capacity**) is a function
 
 $$g : 2^X \rightarrow \mathbb{R}^+$$
 
-that assigns a non-negative number to **every subset** of $X$ — not just to single sources.
+that assigns a non-negative number to **every subset** of $X$, not just to single sources.
 It must satisfy:
 
 **(P1) Boundary conditions**
@@ -131,7 +131,7 @@ weights (it's *additive*). A fuzzy measure is allowed to be **non-additive**:
 $$g(\{x_1,x_2\}) \ne g(\{x_1\}) + g(\{x_2\}) \quad\text{(allowed!)}$$
 
 - If $g(\{x_1,x_2\}) < g(\{x_1\})+g(\{x_2\})$: the two sources are **redundant** (they
-  overlap — counting both fully would be double-counting).
+  overlap, counting both fully would be double-counting).
 - If $g(\{x_1,x_2\}) > g(\{x_1\})+g(\{x_2\})$: the two are **complementary / synergistic**
   (together they're worth more than the sum of parts).
 
@@ -142,7 +142,7 @@ the entire reason the paper uses a fuzzy measure.
 
 ## 3. The Sugeno λ-measure
 
-**Problem:** a general fuzzy measure needs a value for all $2^N$ subsets — too many numbers
+**Problem:** a general fuzzy measure needs a value for all $2^N$ subsets, too many numbers
 to choose by hand. **Sugeno's shortcut:** choose just $N$ numbers (one **density** $g_i$
 per source) and let a single parameter $\lambda$ generate all the rest.
 
@@ -154,7 +154,7 @@ $$g(A \cup B) = g(A) + g(B) + \lambda\, g(A)\, g(B), \qquad \lambda > -1$$
 
 - The first two terms are the ordinary additive part.
 - The $\lambda\, g(A)\, g(B)$ term is the **interaction**: it bends additivity up or down.
-- $\lambda = 0$ recovers a plain additive measure (a weighted average — see §4.4).
+- $\lambda = 0$ recovers a plain additive measure (a weighted average, see §4.4).
 
 Writing $g_i := g(\{x_i\})$ for the **densities** (each source's standalone importance), and
 applying the rule repeatedly to build up the whole set, gives the importance of *any*
@@ -178,25 +178,25 @@ $$\boxed{\;1 + \lambda = \prod_{i=1}^{N}\big(1 + \lambda\, g_i\big)\;}$$
 - We want the one root with $\lambda > -1$ and $\lambda \neq 0$ (theory guarantees it's
   unique). Our code builds the polynomial's coefficients and calls `numpy.roots`.
 
-### 3.3 The sign of λ — what it *means*
+### 3.3 The sign of λ, what it *means*
 
 Sum the densities, $\;S = \sum_i g_i$:
 
 | If the densities sum to… | then λ is… | interpretation |
 |---|---|---|
 | $S = 1$ | $\lambda = 0$ | additive ⇒ Choquet **=** weighted average |
-| $S > 1$ | $-1 < \lambda < 0$ | **redundancy penalty** — overlapping strong sources don't fully add up |
-| $S < 1$ | $\lambda > 0$ | **synergy bonus** — groups worth more together |
+| $S > 1$ | $-1 < \lambda < 0$ | **redundancy penalty**, overlapping strong sources don't fully add up |
+| $S < 1$ | $\lambda > 0$ | **synergy bonus**, groups worth more together |
 
-In our run the three tree-ensembles each scored competence ≈ 0.69–0.75, summing to ≈ 2.12
-> 1, so $\lambda \approx -0.97$ (the redundancy regime) — sensible, because three
+In our run the three tree-ensembles each scored competence ≈ 0.69 to 0.75, summing to ≈ 2.12
+> 1, so $\lambda \approx -0.97$ (the redundancy regime), sensible, because three
 tree-ensembles trained on the same features really *are* redundant.
 
 ### 3.4 Building nested subsets efficiently
 
 The Choquet integral (next section) only needs the measure of a **growing chain** of sets
 $A_{(1)} \subseteq A_{(2)} \subseteq \dots \subseteq A_{(N)} = X$. We don't need all $2^N$
-subsets — we add one source at a time using the defining rule:
+subsets, we add one source at a time using the defining rule:
 
 $$g(A_{(j)}) = g(A_{(j-1)}) + g_{(j)} + \lambda\, g(A_{(j-1)})\, g_{(j)}$$
 
@@ -219,8 +219,8 @@ with $A_{(0)} = \varnothing$ so $g(A_{(0)}) = 0$. Then the Choquet integral is:
 $$C_g(h) = \sum_{j=1}^{N} h(x_{(j)}) \,\Big[\, g(A_{(j)}) - g(A_{(j-1)}) \,\Big]$$
 
 **Line-by-line:**
-- $h(x_{(j)})$ — the $j$-th **largest** prediction.
-- $g(A_{(j)}) - g(A_{(j-1)})$ — how much the group importance **grows** when we add the
+- $h(x_{(j)})$, the $j$-th **largest** prediction.
+- $g(A_{(j)}) - g(A_{(j-1)})$, how much the group importance **grows** when we add the
   $j$-th source. This bracket is the **effective weight** given to that prediction.
 - We sum prediction × its effective weight. Because the weights come from *group*
   importances (the fuzzy measure), interactions between models are automatically baked in.
@@ -248,7 +248,7 @@ $h = (9, 7, 5)$. Build the nested measures with §3.4, then apply eq. (13):
 
 $$C_g(h) = 7.200 + 1.081 + 0.228 = \mathbf{8.51}$$
 
-Two checks: (1) the final measure is exactly $g(A_{(3)})=1.000=g(X)$ ✓; (2) the result 8.51
+Two checks: (1) the final measure is exactly $g(A_{(3)})=1.000=g(X)$ ; (2) the result 8.51
 lies **above** the plain mean 7.0, pulled toward the 9 that the high-density sources backed.
 
 ### 4.4 Why a weighted average is just a special case
@@ -257,13 +257,13 @@ If $\lambda = 0$ (densities sum to 1), then $g(A_{(j)}) - g(A_{(j-1)}) = g_{(j)}
 
 $$C_g(h) = \sum_{j=1}^{N} h(x_{(j)})\, g_{(j)} = \sum_{i=1}^{N} w_i\, h(x_i)$$
 
-— an ordinary weighted average with weights $w_i = g_i$. So the Choquet integral
+, an ordinary weighted average with weights $w_i = g_i$. So the Choquet integral
 **contains** the weighted average and adds the ability to model interaction on top. That's
 the precise sense in which it is "smarter than an average."
 
 ---
 
-## 5. Weight-based multimodel fusion (paper eqs. 14–15)
+## 5. Weight-based multimodel fusion (paper eqs. 14 to 15)
 
 The full paper produces $3\times3 = 9$ models (3 algorithms × 3 feature sets), runs each
 through a Choquet integral, then **combines the 9 results with adaptive weights**. The
@@ -276,7 +276,7 @@ $$R_i = \frac{1}{\left(\sqrt{\dfrac{1}{T}\sum_{t=1}^{T}\big(\hat{r}_t - r_t\big)
 - $\hat{r}_t$ = model $i$'s prediction for training sample $t$; $r_t$ = the true value.
 - $T$ = number of training samples.
 - The thing in the big parentheses is exactly the **training RMSE**; squaring it gives the
-  **MSE**. So $R_i = 1/\text{MSE}_i$ — **smaller error ⇒ larger reliability.**
+  **MSE**. So $R_i = 1/\text{MSE}_i$, **smaller error ⇒ larger reliability.**
 
 ### 5.2 Normalizing into weights (paper eq. 14)
 
@@ -295,17 +295,17 @@ $$\text{BG}_{\text{fusion}} = \sum_{k=1}^{9} \omega_k \cdot r_k$$
 
 > In **our Image #1 build**, `fusion.py` uses the same idea in `predict_all()`'s
 > `WeightedAverage` baseline (weights = normalized densities), so you can directly compare
-> "weights only" (eqs. 14–15) against "Choquet" (eq. 13) and see what the fuzzy-measure
+> "weights only" (eqs. 14 to 15) against "Choquet" (eq. 13) and see what the fuzzy-measure
 > interaction adds.
 
 ---
 
-## 6. The metrics: RMSE & MARD (paper eqs. 16–17)
+## 6. The metrics: RMSE & MARD (paper eqs. 16 to 17)
 
 Let $y(j)$ be the true blood glucose and $\hat{y}(j)$ the prediction, for $j=1,\dots,N$
 test samples.
 
-### 6.1 RMSE — Root-Mean-Square Error (eq. 16)
+### 6.1 RMSE, Root-Mean-Square Error (eq. 16)
 
 $$\text{RMSE} = \sqrt{\frac{1}{N}\sum_{j=1}^{N}\big(\hat{y}(j) - y(j)\big)^2}$$
 
@@ -313,7 +313,7 @@ Read inside-out: error → **square** it (positive, and punishes big misses extr
 of the squares → **square root** (units back to mmol/L). It's the "typical error size."
 Implemented in `metrics.py::rmse`.
 
-### 6.2 MARD — Mean Absolute Relative Difference (eq. 17)
+### 6.2 MARD, Mean Absolute Relative Difference (eq. 17)
 
 $$\text{MARD} = \frac{1}{N}\sum_{j=1}^{N}\frac{\big|\hat{y}(j) - y(j)\big|}{y(j)} \times 100\%$$
 
@@ -324,7 +324,7 @@ MARD = 13.42%.)
 
 ---
 
-## 7. Temporal statistical features — DWT + the 10 features (paper Section II-B)
+## 7. Temporal statistical features, DWT + the 10 features (paper Section II-B)
 
 This is the math behind `src/features_temporal.py`. The paper takes one ECG window and
 produces **80 numbers** from it. Two stages: (A) split the window into 8 signals with a
@@ -333,7 +333,7 @@ produces **80 numbers** from it. Two stages: (A) split the window into 8 signals
 
 ### 7.A The Discrete Wavelet Transform (DWT), db4, 7 levels
 
-**Why.** A heartbeat mixes information at many *scales* — slow baseline drift, the broad
+**Why.** A heartbeat mixes information at many *scales*, slow baseline drift, the broad
 T-wave, the sharp narrow R-spike. A single set of statistics blurs them together. The DWT
 **separates a signal by scale**, so we can measure each scale on its own.
 
@@ -368,67 +368,67 @@ where $FE_0$ is the original window and $FE_k$ is the reconstruction from $cD_k$
 
 Below, $x$ is one of the 8 signals, with $N$ samples, mean $\mu$, std $\sigma$.
 
-**1. Kurtosis (Kur)** — how "peaky / heavy-tailed" the amplitude distribution is. ECG scores
+**1. Kurtosis (Kur)**, how "peaky / heavy-tailed" the amplitude distribution is. ECG scores
 high because of the sharp R-spikes.
 $$\text{Kur} = \frac{\tfrac1N\sum_{n}(x[n]-\mu)^4}{\sigma^4} - 3 \quad(\text{the }-3\text{ makes a Gaussian score }0)$$
 
-**2. Skewness (Ske)** — left/right asymmetry of the amplitude distribution (0 = symmetric).
+**2. Skewness (Ske)**, left/right asymmetry of the amplitude distribution (0 = symmetric).
 $$\text{Ske} = \frac{\tfrac1N\sum_{n}(x[n]-\mu)^3}{\sigma^3}$$
 
-**3. Signal Mobility (SM)** — *Hjorth mobility*. Roughly the signal's dominant frequency:
+**3. Signal Mobility (SM)**, *Hjorth mobility*. Roughly the signal's dominant frequency:
 the std of the slope divided by the std of the signal. ($x'$ = first difference $x[n]-x[n-1]$.)
 $$\text{SM} = \sqrt{\frac{\operatorname{Var}(x')}{\operatorname{Var}(x)}}$$
 
-**4. Signal Complexity (SC)** — *Hjorth complexity*. How much the frequency content varies
+**4. Signal Complexity (SC)**, *Hjorth complexity*. How much the frequency content varies
 (how far from a pure sine wave). It's the mobility of the slope over the mobility of the signal:
 $$\text{SC} = \frac{\text{SM}(x')}{\text{SM}(x)}$$
 
-**5. Fractal Dimension (FD)** — *Higuchi's* method. Measures how "rough / space-filling" the
+**5. Fractal Dimension (FD)**, *Higuchi's* method. Measures how "rough / space-filling" the
 curve is (a smooth line ≈ 1.0; a very jagged one approaches 2.0). It builds shortened copies
 of the series at spacing $k$, measures their average length $L(k)$, and uses the fact that
 for a fractal $L(k)\propto k^{-D}$; $D$ is read off the slope of $\ln L(k)$ vs $\ln(1/k)$.
 
-**6. Correlation Dimension (CD)** — from **chaos theory** (Grassberger–Procaccia). Embed the
+**6. Correlation Dimension (CD)**, from **chaos theory** (Grassberger, Procaccia). Embed the
 1-D series into $m$-dimensional vectors (delays), then count how many pairs of points lie
 within distance $r$:
 $$C(r) = \frac{2}{M(M-1)}\sum_{i<j}\Theta\big(r - \lVert \mathbf{v}_i-\mathbf{v}_j\rVert\big), \qquad \text{CD} = \lim_{r\to 0}\frac{\ln C(r)}{\ln r}$$
 ($\Theta$ = step function: 1 if inside radius $r$, else 0.) CD estimates how many independent
-variables drive the signal — its "dynamical complexity."
+variables drive the signal, its "dynamical complexity."
 
-**7. C0-complexity (C0)** — fraction of the signal's energy that is *irregular*. Take the
+**7. C0-complexity (C0)**, fraction of the signal's energy that is *irregular*. Take the
 FFT, treat spectral components stronger than the mean power as the "regular" part, inverse-
 transform that to $\tilde{x}$, and measure the leftover:
 $$\text{C0} = \frac{\sum_n \lvert x[n]-\tilde{x}[n]\rvert^2}{\sum_n \lvert x[n]\rvert^2}$$
 
-**8. Power Spectral Entropy (PSE)** — how *spread out* the signal's energy is across
+**8. Power Spectral Entropy (PSE)**, how *spread out* the signal's energy is across
 frequencies. Take the power spectrum $P(f)$, normalise it to a probability distribution
 $p(f)=P(f)/\sum P$, then Shannon-entropy it (a pure tone → low PSE; white noise → high PSE):
 $$\text{PSE} = -\sum_f p(f)\,\log p(f)$$
 
-**9. Kolmogorov Entropy (KE)** — the rate at which the system produces new information /
+**9. Kolmogorov Entropy (KE)**, the rate at which the system produces new information /
 "forgets" its past; large for chaotic signals. True KE is hard to compute from finite data,
 so the standard practical estimator (and what our code uses) is **Sample Entropy**: the
 negative log probability that two segments similar for $m$ samples stay similar at $m{+}1$:
 $$\text{SampEn}(m,r) = -\ln\frac{A}{B}$$
 where $B$ = #segment-pairs matching within tolerance $r$ over length $m$, and $A$ = those
-that still match at length $m{+}1$. *(We label this KE per the paper; it's an estimate — see
+that still match at length $m{+}1$. *(We label this KE per the paper; it's an estimate, see
 the note in the code.)*
 
-**10. Shannon Entropy (SE)** — the information content of the **amplitude distribution**.
+**10. Shannon Entropy (SE)**, the information content of the **amplitude distribution**.
 Histogram the values into bins with probabilities $p_i$:
 $$\text{SE} = -\sum_i p_i\,\log_2 p_i$$
 Low when values cluster tightly, high when they're spread evenly.
 
 > **Putting it together:** 8 signals (DWT) × 10 features = **80 features per ECG window**,
 > named `FE0_Kur … FE7_SE`. That's exactly the paper's ECG temporal feature set. (The paper
-> adds 80 more from PPG; D1NAMO has no PPG, so we stop at 80 — see `explain.md` §13.)
+> adds 80 more from PPG; D1NAMO has no PPG, so we stop at 80, see `explain.md` §13.)
 
 ---
 
 ## 7.5 The temporal Choquet (paper stage 2, eq. 13 over time)
 
 This is the math behind `src/temporal_choquet.py`. It is the **same Choquet integral** as
-§4 — only the "sources" change from *models* to *time-points of one model's prediction
+§4, only the "sources" change from *models* to *time-points of one model's prediction
 stream*.
 
 ### Setup
@@ -445,7 +445,7 @@ built from per-time-lag densities $g_i$:
 
 $$\hat{p}^{\text{smooth}}_t = C_g\big(\hat{p}_{t-6}, \dots, \hat{p}_t\big) = \sum_{j=1}^{7} \hat{p}_{(j)}\Big[g(A_{(j)}) - g(A_{(j-1)})\Big]$$
 
-(sorted descending, nested sets, as before). That's it — the temporal Choquet is the
+(sorted descending, nested sets, as before). That's it, the temporal Choquet is the
 ordinary Choquet integral applied along the time axis.
 
 ### Why the density choice decides everything (and what we pick)
@@ -455,8 +455,8 @@ is an **OWA** (ordered weighted average). The value of $c$ sets its character vi
 
 | densities sum $7c$ | λ | resulting operator | effect on a spike |
 |---|---|---|---|
-| $= 1$ (i.e. $c=1/7$) | $0$ | plain **average** | spike spread thin, decays out of window ✅ |
-| $> 1$ ($c>1/7$) | $<0$ | leans to **max** | spike **dominates** the whole window ❌ |
+| $= 1$ (i.e. $c=1/7$) | $0$ | plain **average** | spike spread thin, decays out of window |
+| $> 1$ ($c>1/7$) | $<0$ | leans to **max** | spike **dominates** the whole window |
 | $< 1$ ($c<1/7$) | $>0$ | leans to **min** | pulled toward the lowest value |
 
 We default to $c = 1/7$ (the **average-like** setting) because a moving-average-style
@@ -469,68 +469,68 @@ verified this: a +4 spike in the demo gets smoothed from 12.2 → 8.06, with tru
 A proper fuzzy measure has $g(X)=1$, which makes the Choquet integral **idempotent**: a
 constant stream $[a,a,\dots,a]$ returns $a$ (no distortion). The Sugeno λ is solved
 precisely to enforce $g(X)=1$ (§3.2). The one degenerate case is a window of length 1 (no
-history yet) — there we just return the value unchanged.
+history yet), there we just return the value unchanged.
 
 ---
 
-## 8. Resources — where to actually learn all of this
+## 8. Resources: where to actually learn all of this
 
-Grouped by topic, easiest first within each group. **★** = best starting point.
+Grouped by topic, easiest first within each group. **** = best starting point.
 
 ### Machine learning & the ensemble models (RF, GB, Bagging)
-- ★ **StatQuest with Josh Starmer** (YouTube) — free, gentle, visual. Watch, in order:
-  "Decision Trees", "Random Forests Part 1 & 2", "Gradient Boost Part 1–4", "Bias and
+- **StatQuest with Josh Starmer** (YouTube), free, gentle, visual. Watch, in order:
+  "Decision Trees", "Random Forests Part 1 & 2", "Gradient Boost Part 1 to 4", "Bias and
   Variance". This is the single best beginner resource for §1.
 - **"An Introduction to Statistical Learning" (ISLR)** by James, Witten, Hastie, Tibshirani
-  — free PDF at [statlearning.com](https://www.statlearning.com/). Chapter 8 = trees,
+, free PDF at [statlearning.com](https://www.statlearning.com/). Chapter 8 = trees,
   bagging, random forests, boosting. Has a Python edition ("ISLP").
-- **scikit-learn User Guide** — [Ensemble methods](https://scikit-learn.org/stable/modules/ensemble.html).
+- **scikit-learn User Guide**, [Ensemble methods](https://scikit-learn.org/stable/modules/ensemble.html).
   The exact models we use, with the math and the knobs.
-- *(Deeper)* **"The Elements of Statistical Learning" (ESL)** — same authors, free PDF,
+- *(Deeper)* **"The Elements of Statistical Learning" (ESL)**, same authors, free PDF,
   rigorous. Chapter 10 (boosting) and 15 (random forests).
 
-### Fuzzy measures & the Choquet integral (the core, §2–§4)
-- ★ **Survey paper:** Grabisch, "Fuzzy integral in multicriteria decision making,"
-  *Fuzzy Sets and Systems* (1995) — the classic, readable introduction to Sugeno measures
+### Fuzzy measures & the Choquet integral (the core, §2, §4)
+- **Survey paper:** Grabisch, "Fuzzy integral in multicriteria decision making,"
+  *Fuzzy Sets and Systems* (1995), the classic, readable introduction to Sugeno measures
   and the Choquet integral. Search the title on Google Scholar for a free PDF.
 - **Murofushi & Sugeno**, "An interpretation of fuzzy measures and the Choquet integral as
-  an integral with respect to a fuzzy measure" (1989) — foundational.
-- **Beliakov, Pradera & Calvo, "Aggregation Functions: A Guide for Practitioners"** (book) —
+  an integral with respect to a fuzzy measure" (1989), foundational.
+- **Beliakov, Pradera & Calvo, "Aggregation Functions: A Guide for Practitioners"** (book),
   Chapter on the Choquet integral; very implementation-friendly.
 - **Wikipedia:** ["Choquet integral"](https://en.wikipedia.org/wiki/Choquet_integral) and
-  ["Fuzzy measure theory"](https://en.wikipedia.org/wiki/Fuzzy_measure_theory) — good for
-  the definitions and notation in §2–§4; cross-check with the survey above.
+  ["Fuzzy measure theory"](https://en.wikipedia.org/wiki/Fuzzy_measure_theory), good for
+  the definitions and notation in §2, §4; cross-check with the survey above.
 - **Search terms** that find tutorials: *"Sugeno lambda fuzzy measure example"*,
   *"Choquet integral classifier fusion"*, *"fuzzy integral information fusion tutorial"*.
 
-### Signal processing — wavelets & the entropy/fractal features (§7)
-- ★ **The Wavelet Tutorial** by Robi Polikar — the classic, beginner-friendly intro to the
-  DWT (search "Polikar wavelet tutorial"). Read parts I–III for §7.A.
-- **PyWavelets docs** — [pywavelets.readthedocs.io](https://pywavelets.readthedocs.io/) —
+### Signal processing, wavelets & the entropy/fractal features (§7)
+- **The Wavelet Tutorial** by Robi Polikar, the classic, beginner-friendly intro to the
+  DWT (search "Polikar wavelet tutorial"). Read parts I, III for §7.A.
+- **PyWavelets docs**, [pywavelets.readthedocs.io](https://pywavelets.readthedocs.io/),
   `wavedec`/`waverec`, the "db4" wavelet, and multilevel decomposition (exactly our code).
-- **3Blue1Brown** "But what is the Fourier Transform?" (YouTube) — builds the spectral
+- **3Blue1Brown** "But what is the Fourier Transform?" (YouTube), builds the spectral
   intuition behind PSE and C0-complexity.
-- **antropy docs** — [raphaelvallat.com/antropy](https://raphaelvallat.com/antropy/) —
+- **antropy docs**, [raphaelvallat.com/antropy](https://raphaelvallat.com/antropy/),
   clear definitions + references for Higuchi FD, Hjorth params, spectral & sample entropy.
-- **Hjorth (1970)**, "EEG analysis based on time domain properties" — original source for
-  Signal Mobility & Complexity. **Higuchi (1988)** — original fractal-dimension method.
-- **Grassberger & Procaccia (1983)**, "Characterization of strange attractors" — the
+- **Hjorth (1970)**, "EEG analysis based on time domain properties", original source for
+  Signal Mobility & Complexity. **Higuchi (1988)**, original fractal-dimension method.
+- **Grassberger & Procaccia (1983)**, "Characterization of strange attractors", the
   correlation dimension (CD); pair with any "intro to chaos theory / strange attractors"
   explainer for intuition.
 
 ### The application (ECG/PPG → blood glucose)
-- The **paper itself** (in this folder) — now that you have §1–§6, re-read its Section II.
+- The **paper itself** (in this folder), now that you have §1, §6, re-read its Section II.
 - The paper's **code**: [github.com/SIATCAS/SFF-WCIM](https://github.com/SIATCAS/SFF-WCIM).
 - **D1NAMO dataset** docs: [Zenodo record](https://zenodo.org/records/5651217) and the
   describing paper (Dubosson et al., 2018, *Informatics in Medicine Unlocked*).
 
 ### The math prerequisites (if any formula symbol felt unfamiliar)
-- **Khan Academy** — "Summation notation", "Probability and statistics" (mean, variance).
-- **3Blue1Brown "Essence of Linear Algebra"** & **"Essence of Calculus"** (YouTube) — for
+- **Khan Academy**, "Summation notation", "Probability and statistics" (mean, variance).
+- **3Blue1Brown "Essence of Linear Algebra"** & **"Essence of Calculus"** (YouTube), for
   the gradient idea behind gradient boosting and general mathematical maturity.
 
 ### How to study this efficiently
 1. Watch StatQuest's tree/forest/boosting videos (≈2 hrs) → you'll understand §1 fully.
-2. Read §2–§4 here slowly, redoing the §4.3 worked example **by hand** on paper.
+2. Read §2, §4 here slowly, redoing the §4.3 worked example **by hand** on paper.
 3. Skim the Grabisch survey for the Choquet integral's bigger picture.
-4. Re-read the paper's Section II — it will now read like familiar territory.
+4. Re-read the paper's Section II, it will now read like familiar territory.
