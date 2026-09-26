@@ -1,127 +1,156 @@
-# Noninvasive blood glucose monitoring with Choquet-integral model fusion
+# Noninvasive blood glucose estimation from ECG and PPG
 
-A from-scratch reproduction of the decision-fusion method in:
+A from-scratch reproduction of:
 
-> J. Li et al., "Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG
-> Feature Fusion and Weight-Based Choquet Integral Multimodel Approach," IEEE
-> Transactions on Neural Networks and Learning Systems, vol. 35, no. 10, 2024.
+> J. Li et al., *"Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG
+> Feature Fusion and Weight-Based Choquet Integral Multimodel Approach,"*
+> IEEE Transactions on Neural Networks and Learning Systems, 35(10), 2024.
 
-The aim is to estimate blood glucose (BG) from physiological signals without a finger
-prick, by running several machine-learning models and combining their predictions with a
-Choquet integral.
+Run on **PhysioCGM** (10 Type-1 diabetes patients, ECG + PPG + CGM, CC0) instead of the
+authors' private data — **30,830 paired windows, 193 features**.
 
-```
-   ┌───────────────┐
-   │ Random Forest │──┐
-   └───────────────┘  │
-   ┌───────────────┐  │   ┌──────────────────┐   ┌───────────┐
-   │ Gradient Boost│──┼──>│ Choquet integral │──>│ BG output │
-   └───────────────┘  │   │      fusion      │   └───────────┘
-   ┌───────────────┐  │   └──────────────────┘
-   │    Bagging    │──┘
-   └───────────────┘
-        Choquet integral multi-model fusion   (the paper's Fig. 6)
-```
+**📄 [Read the full write-up →](WRITEUP.md)** — the problem, every formula derived, what
+we built, what we found, and what we cannot claim. Written to be readable without a
+background in ML or signal processing.
 
-This repository implements that fusion block, the paper's temporal Choquet (which smooths
-each model's prediction stream over time), and the ECG feature-extraction pipeline that
-feeds them.
+---
 
-## What is implemented
+## The short version
 
-| Part | Paper section |
-|---|---|
-| Random Forest, Gradient Boosting, and Bagging base models | II-D |
-| Sugeno-λ fuzzy measure and Choquet integral (multimodel fusion) | II-D, eq. 13 |
-| Temporal Choquet (fuse each model's last N=7 predictions over time) | II-D |
-| Level-1 signal cleaning (0.5 to 40 Hz band-pass) | II-A |
-| Level-2 temporal features: db4 DWT (7 levels), 8 signals × 10 features = 80 | II-B |
-| RMSE and MARD metrics | II-E |
+The paper reports **1.49 mmol/L RMSE** by extracting features from ECG and PPG, then
+fusing three models with a Choquet integral. We rebuilt all three of its stages and
+evaluated them honestly.
 
-The paper uses ECG and PPG together (160 temporal features) plus a ResNet morphological
-branch. This reproduction runs on the D1NAMO dataset, which records ECG only. It reproduces
-the 80 ECG temporal features and both Choquet fusions. The PPG and ResNet parts are not
-included because that data is not present in D1NAMO.
+**It does not hold up on this data** — and the interesting part is *why*. We found four
+distinct ways this kind of pipeline produces confident numbers that are wrong while
+appearing to work:
 
-## Results on D1NAMO (4,054 ECG windows, 9 patients)
-
-Always predicting the mean glucose gives an RMSE of 4.19 mmol/L, which is the no-skill
-baseline any model has to beat.
-
-| Setting | RMSE (mmol/L) | MARD (%) |
+| # | Finding | Evidence |
 |---|---|---|
-| Pooled 5-fold, best single model (Random Forest) | 3.90 | 45.8 |
-| Pooled 5-fold, Choquet fusion | 3.95 | 44.2 |
-| Leave-one-subject-out, Choquet fusion | 4.41 | 51.1 |
-| Leave-one-subject-out, with temporal Choquet | 4.32 | 51.2 |
+| **1** | **The evaluation protocol dominates the model** | R² **+0.149 → −0.223** on identical data; only the train/test split changed |
+| **2** | **Clinical metrics mask the failure** | A constant predictor scores the **best** Parkes Zone A+B (90.0%) *and* the best R² of anything tested |
+| **3** | **The fusion degenerates into a minimum operator** | `corr(Choquet output, min of the models) = 0.998` |
+| **4** | **A standard feature library is non-deterministic** | `nolds.corr_dim` defaults to an unseeded random fit; up to **72%** of values change between identical runs |
 
-How to read these: ECG-temporal features alone carry only weak signal for absolute glucose,
-so the best model beats the no-skill baseline by about 7%, and the temporal Choquet adds
-about another 2%. The fusion code is correct; the ceiling comes from the missing modalities
-(PPG) and features, which is why the original paper needed them to reach 1.49 mmol/L. The
-full discussion is in [`explain.md`](explain.md), sections 16 and 17.
+Plus two silent data hazards caught by guards written to refuse rather than guess: the two
+recorders do not share a clock, and one patient's recording crosses a daylight-saving
+transition.
 
-## Repository layout
+### The degeneracy theorem
+
+When every model's density estimate saturates at the same value `g`, the Sugeno λ-measure
+becomes symmetric and the Choquet integral provably reduces to a fixed order statistic:
 
 ```
-src/
-  data.py               synthetic dataset (scaffolding to unit-test the fusion)
-  base_models.py        RandomForest, GradientBoosting, Bagging
-  choquet.py            Sugeno-λ fuzzy measure and Choquet integral (the core)
-  fusion.py             assembles the multimodel fusion
-  metrics.py            RMSE, MARD
-  main.py               run the fusion on synthetic data (instant demo)
-  features_temporal.py  the paper's 80 ECG temporal features (db4 DWT and 10 features)
-  d1namo.py             load real D1NAMO ECG/glucose into a feature table (cached)
-  run_d1namo.py         evaluate the fusion on real data (pooled and leave-one-subject-out)
-  temporal_choquet.py   the paper's temporal Choquet
-  run_temporal.py       evaluate raw vs temporal-smoothed fusion
-train.py                train once, save the model to bg_model.pkl
-app.py                  Streamlit demo web app
-explain.md              plain-English walkthrough of every file
-MATH.md                 every formula derived from scratch, with a worked example
-resource.md             curated YouTube and course learning path
+w_j = g · β^(j−1),    β = 1 + λg,    j = 1 is the LARGEST prediction
 ```
 
-The whole thing is classical machine learning and runs on a normal CPU. No GPU is needed.
+Since `Σ gᵢ < 1 ⟹ λ > 0 ⟹ β > 1`, weight piles onto the **smallest** prediction. At the
+observed floor `g = 0.01`, **89.5%** of the weight lands on the minimum — so the
+"multimodel fusion" was returning `min(m1, m2, m3)`.
 
-## Setup
+The *symmetric measure ⟹ OWA* equivalence is standard aggregation theory (Grabisch;
+Marichal). What is new here is identifying it as a **practical failure mode** of
+performance-based density estimation, with a closed-form diagnostic, demonstrated in a
+published biomedical pipeline.
+
+Full derivation in [WRITEUP.md §9.3](WRITEUP.md#93-the-fusion-degenerates-into-a-minimum-operator).
+
+---
+
+## Results
+
+Fused feature set (all 193), 30,830 windows, 10 patients.
+
+| | Random window split | Subject-aware split |
+|---|---|---|
+| Best single model (R²) | +0.194 | −0.243 |
+| **Choquet fusion (R²)** | **+0.149** | **−0.223** |
+| No-skill baseline (R²) | −0.000 | −0.074 |
+| Choquet RMSE (mmol/L) | 2.324 | 2.786 |
+| Baseline RMSE (mmol/L) | 2.520 | 2.610 |
+
+Under the honest split **every method is worse than guessing the mean**.
+
+![Parkes error grid](figures/results/fig10_parkes_subject_aware.png)
+
+The predictions form a **horizontal band** around 6–9 mmol/L regardless of whether the
+true value was 4 or 20. That is what "no better than the average" looks like — and it
+still lands 89.4% inside the clinically acceptable zones, which is precisely why the zone
+metric cannot certify a model on its own.
+
+---
+
+## Layout
+
+| Path | Contents |
+|---|---|
+| `bgfusion/stage1_data.py` | Loading, clock/timezone alignment, filtering, windowing |
+| `bgfusion/features_temporal.py` | db4 DWT + the paper's 10 temporal features |
+| `bgfusion/stage2_morphological.py` | QT, QTc, ST level, T-wave shape, HRV, PPG pulse morphology |
+| `bgfusion/stage2_fusion.py` | Feature sets + UFS ∩ RFE ∩ L1 selection |
+| `bgfusion/choquet.py` | Sugeno-λ solver + Choquet integral |
+| `bgfusion/stage3_fusion.py` | The three models, densities, `degeneracy_report` |
+| `bgfusion/evaluate.py` | Three split protocols, two controls, grading |
+| `bgfusion/error_grid.py` | Parkes error grid zones |
+| `deck/` | Generator for `BTP_presentation.pptx` |
+| `legacy_d1namo/` | An earlier ECG-only study on D1NAMO (archived) |
+
+Three things deliberately built to **fail loudly rather than guess**:
+
+1. `detect_timezone()` raises when no candidate zone wins decisively
+2. `select_features()` takes training data only — there is no whole-dataset variant
+3. `degeneracy_report()` flags every fold where the fusion stops discriminating
+
+---
+
+## Running it
 
 ```bash
 pip install -r requirements.txt
+
+# Stage 1: extract 193 features per window for all 10 subjects (~2.5 h, resumable)
+python run_stage1.py
+
+# Stages 2+3: leakage-controlled evaluation (~15 min per configuration)
+python run_evaluation.py
+
+# Figures
+python -m bgfusion.figures_theory      # the degeneracy result (no data needed)
+python -m bgfusion.figures_results     # Parkes grid, time series, protocol comparison
+
+# Rebuild the slide deck
+node deck/main12.js
 ```
 
-## Getting the data (not in this repo)
+**Performance note.** Always launch extraction through `run_stage1.py`. It pins BLAS to
+one thread per worker *before* numpy is imported — without that, each joblib worker spawns
+its own full-size thread pool and the run goes **slower than single-threaded** (measured:
+5.16 s/window unpinned vs 1.22 s/window pinned, a 4.2× difference).
 
-The D1NAMO data (about 10 GB) and the IEEE PDF are not committed. To reproduce the
-real-data results, download the D1NAMO diabetes subset from Zenodo
-(<https://zenodo.org/records/5651217>) and unzip it into:
+---
 
-```
-data/d1namo/diabetes_subset_ecg_data/...
-data/d1namo/diabetes_subset_pictures-glucose-food-insulin/...
-```
+## Data
 
-## Running
+Not included in this repository (8.6 GB). Download from figshare record **28136294**:
 
-```bash
-python -m src.main          # fusion on synthetic data (instant sanity demo)
-python -m src.d1namo        # build the real feature cache (one-time, ~60 to 90 min on CPU)
-python -m src.run_d1namo    # evaluate the fusion on real data (RMSE/MARD)
-python -m src.run_temporal  # evaluate the temporal Choquet
-python train.py             # train and save the model to bg_model.pkl
-streamlit run app.py        # launch the demo web app at http://localhost:8501
-```
+> *PhysioCGM: a multimodal physiological dataset for non-invasive blood glucose
+> estimation.* Scientific Data, 2025. **CC0** (public domain).
 
-## Learning the project
+The IEEE paper itself is **not** redistributed here — it is copyrighted. Obtain it from
+IEEE Xplore.
 
-Three documents explain the project alongside the code:
+---
 
-- [`explain.md`](explain.md) explains every file in plain English, assuming no machine-learning background.
-- [`MATH.md`](MATH.md) derives every formula from zero (ensembles, fuzzy measures, the Sugeno-λ measure, the Choquet integral, the DWT and the 10 features, RMSE/MARD), with a hand-checkable example.
-- [`resource.md`](resource.md) is an ordered YouTube and course study path (StatQuest, NPTEL, Andrew Ng) mapped to each part of the code.
+## Limitations
 
-## Acknowledgements
+- The morphological branch uses hand-crafted physiological features, **not** the paper's
+  ResNet. Defensible and more interpretable, but not a bit-exact replication.
+- Ten patients is small, even though PhysioCGM is the largest open ECG+PPG+CGM dataset.
+- The CGM reference itself lags blood glucose by 5–15 min and carries ~9–10% error.
+- **We cannot conclude the method never works** — only that it does not work on this
+  dataset under honest evaluation, and that its fusion component was inactive.
 
-- Method: Li et al., IEEE TNNLS 2024 (cited above). Authors' code: <https://github.com/SIATCAS/SFF-WCIM>.
-- Data: the open D1NAMO dataset, Dubosson et al., Informatics in Medicine Unlocked, 2018.
+---
+
+*B.Tech Final Year Project — Navtesh Maken*

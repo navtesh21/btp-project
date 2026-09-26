@@ -26,3 +26,19 @@ env/
 Thumbs.db
 .vscode/
 .idea/
+.joblib_tmp/
+
+# ---- Copyrighted paper, in IMAGE form ----
+# The PDF is already excluded above. These PNGs are page scans and extracted figures
+# from the same IEEE paper, so publishing them is the same redistribution. They stay
+# local for reference; re-create with any PDF page extractor if needed.
+figures/page_*.png
+figures/embedded_*.png
+figures/Fig1_framework.png
+figures/Fig6_choquet_fusion.png
+figures/*.code-workspace
+
+# ---- Build artefacts ----
+node_modules/
+deck_png/
+package-lock.json

@@ -100,7 +100,7 @@ def show_prediction(feature_row: pd.DataFrame, true_glucose: float | None = None
         rows.append({"method": name, "prediction (mmol/L)": float(preds[name][0])})
     breakdown = pd.DataFrame(rows).set_index("method")
     st.bar_chart(breakdown)
-    st.dataframe(breakdown, use_container_width=True)
+    st.dataframe(breakdown, width="stretch")
 
 
 tab1, tab2 = st.tabs(["1) Try a real example", "2) Upload an ECG window"])
@@ -114,9 +114,10 @@ with tab1:
     else:
         st.write("Pick a real ECG window that was recorded from a patient, and see what the "
                  "model predicts versus the glucose the CGM device actually measured.")
-        patients = sorted(cache["subject"].astype(str).unique())
+        subj = cache["subject"].astype(str).str.zfill(3)
+        patients = sorted(subj.unique())
         patient = st.selectbox("Patient", patients)
-        subset = cache[cache["subject"].astype(str) == patient].reset_index(drop=True)
+        subset = cache[subj == patient].reset_index(drop=True)
         idx = st.slider("Which window (reading) for this patient?", 0, len(subset) - 1, 0)
 
         row = subset.iloc[[idx]]
@@ -142,4 +143,8 @@ with tab2:
             st.line_chart(pd.DataFrame({"cleaned ECG": cleaned}))
             feats_dict = extract_temporal_features(cleaned, FS)
             feats = pd.DataFrame([feats_dict])[feature_names]
-            show_prediction(feats, true_glucose=None)
+            if feats.isnull().any().any():
+                st.error("Could not extract features: the signal appears flat or constant. "
+                         "Please upload a real ECG recording.")
+            else:
+                show_prediction(feats, true_glucose=None)
