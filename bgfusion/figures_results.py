@@ -158,7 +158,12 @@ def figure_protocol_collapse():
             if os.path.exists(os.path.join(RESULTS, f"summary_fused_{t}.csv"))]
     if not tags:
         return
-    fig, axes = plt.subplots(1, len(tags), figsize=(4.4 * len(tags), 4.6), sharey=True)
+    # sharex matters as much as sharey here: with independent x-scales each panel
+    # autoscales to its own range, so bars of very different magnitude render at the
+    # same length and the panels cannot be compared by eye - which is the entire point
+    # of putting them side by side.
+    fig, axes = plt.subplots(1, len(tags), figsize=(4.4 * len(tags), 4.6),
+                             sharey=True, sharex=True)
     axes = np.atleast_1d(axes)
 
     for ax, tag in zip(axes, tags):
@@ -182,15 +187,22 @@ def figure_protocol_collapse():
         ax.set_yticklabels(METHODS, fontsize=9.5)
         ax.invert_yaxis()
         _style(ax)
-        ax.set_xlabel("R$^2$  (higher is better; 0 = no better than the mean)")
         ax.set_title(PROTO_LABEL[tag], fontsize=10.5, color=INK, pad=20)
 
     lo = min(min(pd.read_csv(os.path.join(RESULTS, f"summary_fused_{t}.csv"))["R2"])
              for t in tags)
     hi = max(max(pd.read_csv(os.path.join(RESULTS, f"summary_fused_{t}.csv"))["R2"])
              for t in tags)
-    axes[0].set_xlim(lo - 0.10, hi + 0.10)
-    fig.suptitle("The same models under progressively stricter splits",
+    axes[0].set_xlim(lo - 0.08, hi + 0.08)
+    # NOT "progressively worse": leave-one-subject-out scores better than the
+    # subject-aware split because it trains on 9 of 10 patients rather than 4 of 5.
+    # The invariant worth claiming is that both honest splits put every method behind
+    # the baseline, so the title says that instead.
+    # One shared axis label rather than three: repeating it wastes space and the
+    # rightmost copy was being clipped by the figure edge.
+    fig.supxlabel("R$^2$   (higher is better; 0 = no better than predicting the mean)",
+                  fontsize=11, color=INK, y=-0.02)
+    fig.suptitle("Under both honest splits, every method falls behind the no-skill baseline",
                  fontsize=13, color=INK, y=1.04)
     _save(fig, "fig_protocol_collapse.png")
 

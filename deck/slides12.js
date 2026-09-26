@@ -290,15 +290,16 @@ module.exports = function build() {
 
   // ---- 7. THE RESULT -----------------------------------------------------
   {
-    const s = contentSlide("Our result: the same model, the same data, collapses from R2 +0.15 to -0.22");
+    const s = contentSlide("Our result: honest splits put every method behind the baseline");
     table(s, [
-      ["", "Random split", "Subject-aware split"],
-      ["Best single model (R2)", "+0.194", "-0.243"],
-      ["Choquet fusion (R2)", "+0.149", "-0.223"],
-      ["No-skill baseline (R2)", "-0.000", "-0.074"],
-      ["Choquet RMSE (mmol/L)", "2.324", "2.786"],
-      ["Baseline RMSE (mmol/L)", "2.520", "2.610"],
-    ], M, 1.6, 7.6, { colW: [3.2, 2.2, 2.2], rowH: 0.36, size: 12.5 });
+      ["", "Random", "Subject-aware", "Leave-one-out"],
+      ["Best single model (R2)", "+0.194", "-0.243", "-0.092"],
+      ["Choquet fusion (R2)", "+0.149", "-0.223", "-0.097"],
+      ["No-skill baseline (R2)", "-0.000", "-0.074", "-0.035"],
+      ["Choquet RMSE (mmol/L)", "2.324", "2.786", "2.639"],
+      ["Baseline RMSE (mmol/L)", "2.520", "2.610", "2.564"],
+      ["Beats the baseline?", "YES", "no", "no"],
+    ], M, 1.55, 7.6, { colW: [2.5, 1.6, 1.85, 1.65], rowH: 0.33, size: 11.5 });
 
     card(s, 8.35, 1.6, 4.45, 1.5, "Read the R2 column first",
       "It is the one metric that exposes a model doing no better than predicting the " +
@@ -329,10 +330,11 @@ module.exports = function build() {
         fontFace: HEAD, fontSize: 22, bold: true, color: PAPER }
     );
     s.addText(
-      "This independently replicates the 2026 finding above - on a different signal (ECG), " +
-      "a different dataset, and a different model class (fuzzy-integral fusion, not CNNs).",
-      { x: M + 0.3, y: 5.35, w: 7.0, h: 0.6, isTextBox: true, margin: 0,
-        fontFace: BODY, fontSize: 12.5, color: "D6E6EA" }
+      "Note leave-one-out is not worse than subject-aware: it trains on 9 of 10 patients " +
+      "rather than 4 of 5, so it has more data. The invariant is that BOTH honest splits " +
+      "put every method behind the baseline.",
+      { x: M + 0.3, y: 5.3, w: 7.0, h: 0.7, isTextBox: true, margin: 0,
+        fontFace: BODY, fontSize: 12, color: "D6E6EA" }
     );
   }
 

@@ -27,7 +27,7 @@ appearing to work:
 
 | # | Finding | Evidence |
 |---|---|---|
-| **1** | **The evaluation protocol dominates the model** | R² **+0.149 → −0.223** on identical data; only the train/test split changed |
+| **1** | **The evaluation protocol dominates the model** | R² **+0.149** under a random split, **−0.223** and **−0.097** under the two honest ones — identical data and code |
 | **2** | **Clinical metrics mask the failure** | A constant predictor scores the **best** Parkes Zone A+B (90.0%) *and* the best R² of anything tested |
 | **3** | **The fusion degenerates into a minimum operator** | `corr(Choquet output, min of the models) = 0.998` |
 | **4** | **A standard feature library is non-deterministic** | `nolds.corr_dim` defaults to an unseeded random fit; up to **72%** of values change between identical runs |
@@ -62,15 +62,22 @@ Full derivation in [WRITEUP.md §9.3](WRITEUP.md#93-the-fusion-degenerates-into-
 
 Fused feature set (all 193), 30,830 windows, 10 patients.
 
-| | Random window split | Subject-aware split |
-|---|---|---|
-| Best single model (R²) | +0.194 | −0.243 |
-| **Choquet fusion (R²)** | **+0.149** | **−0.223** |
-| No-skill baseline (R²) | −0.000 | −0.074 |
-| Choquet RMSE (mmol/L) | 2.324 | 2.786 |
-| Baseline RMSE (mmol/L) | 2.520 | 2.610 |
+| | Random window | Subject-aware | Leave-one-subject-out |
+|---|---|---|---|
+| Best single model (R²) | +0.194 | −0.243 | −0.092 |
+| **Choquet fusion (R²)** | **+0.149** | **−0.223** | **−0.097** |
+| No-skill baseline (R²) | −0.000 | −0.074 | −0.035 |
+| Choquet RMSE (mmol/L) | 2.324 | 2.786 | 2.639 |
+| Baseline RMSE (mmol/L) | 2.520 | 2.610 | 2.564 |
+| **Beats the baseline?** | **yes** | **no** | **no** |
 
-Under the honest split **every method is worse than guessing the mean**.
+Under **either** honest split, every method — including the fusion — falls behind a model
+that predicts a constant.
+
+*(Leave-one-subject-out is not worse than subject-aware despite being stricter: it trains
+on 9 of 10 patients per fold rather than 4 of 5, so it has more data. The baseline moves
+the same way. The claim is not that results degrade monotonically with strictness — it is
+that both honest protocols put every method behind the baseline.)*
 
 ![Parkes error grid](figures/results/fig10_parkes_subject_aware.png)
 

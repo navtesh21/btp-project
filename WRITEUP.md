@@ -616,16 +616,43 @@ Models genuinely learn here: R² 0.194 against a baseline of 0.000.
 
 **Every model is worse than guessing.** And the baseline has the **best Zone A+B**.
 
+### Protocol 3 — leave-one-subject-out
+
+| Method | R² | RMSE | MARD | Zone A | Zone A+B |
+|---|---|---|---|---|---|
+| RandomForest | −0.125 | 2.672 | 31.0% | 43.8% | 89.8% |
+| GradientBoosting | −0.092 | 2.632 | 30.1% | 43.7% | 90.5% |
+| Bagging | −0.125 | 2.672 | 31.0% | 43.7% | 89.8% |
+| PlainAverage | −0.094 | 2.636 | 30.4% | 44.1% | 90.2% |
+| WeightedAverage | −0.094 | 2.636 | 30.4% | 44.1% | 90.2% |
+| **Choquet** | −0.097 | 2.639 | **28.9%** | 45.6% | **91.3%** |
+| *MinOfModels* (control) | −0.101 | 2.644 | 28.7% | 45.8% | 91.3% |
+| **NoSkillBaseline** | **−0.035** | **2.564** | 29.7% | 44.1% | 90.6% |
+
+`corr(Choquet, min) = 0.9972`.
+
 ### The headline comparison
 
-| | Random split | Subject-aware split |
-|---|---|---|
-| Choquet R² | **+0.149** | **−0.223** |
-| Best model R² | +0.194 | −0.243 |
-| Baseline R² | −0.000 | −0.074 |
-| Verdict | Models learn | **Every model loses to guessing** |
+| | Random window | Subject-aware | Leave-one-subject-out |
+|---|---|---|---|
+| Best single model R² | +0.194 | −0.243 | −0.092 |
+| **Choquet R²** | **+0.149** | **−0.223** | **−0.097** |
+| No-skill baseline R² | −0.000 | −0.074 | −0.035 |
+| Choquet RMSE | 2.324 | 2.786 | 2.639 |
+| Baseline RMSE | 2.520 | 2.610 | 2.564 |
+| **Beats the baseline?** | **yes** | **no** | **no** |
 
 Same data. Same model. Same code. **Only the split changed.**
+
+> **One honest caveat about ordering.** Leave-one-subject-out is *not* worse than the
+> subject-aware split (−0.097 against −0.223), even though it is the stricter protocol.
+> The reason is training-set size: LOSO trains on 9 of 10 patients per fold while
+> subject-aware trains on 4 of 5, so LOSO simply has more data. The baseline shifts the
+> same way (−0.035 against −0.074) for the same reason.
+>
+> So the claim is **not** "results degrade monotonically with strictness". The claim
+> supported by the data is narrower and still decisive: **under either honest split,
+> every method — including the fusion — falls behind a model that predicts a constant.**
 
 ---
 
@@ -633,8 +660,9 @@ Same data. Same model. Same code. **Only the split changed.**
 
 ### 9.1 The evaluation protocol dominates the model
 
-Moving from a random split to a subject-aware split takes R² from **+0.149 to −0.223**.
-The model did not change; only the question did.
+Moving from a random split to a subject-aware split takes R² from **+0.149 to −0.223**;
+under leave-one-subject-out it is **−0.097**. In both honest protocols the fusion sits
+below the no-skill baseline. The model did not change; only the question did.
 
 Under a random split, windows from the same patient appear in both training and test.
 Because consecutive windows from one person are highly correlated, the model can identify
@@ -787,9 +815,9 @@ reference.
 **We did not tune hyperparameters.** Model settings follow the paper. A tuned version
 might do better — though tuning honestly requires a third data split.
 
-**Two of three protocols completed.** Leave-one-subject-out and the ECG-vs-PPG ablation
-were not finished. LOSO is stricter than subject-aware, so the trend would be expected to
-continue, but we do not claim a result we did not run.
+**The ablation is incomplete.** All three split protocols ran, but the feature-set
+ablations (ECG-only, PPG-only, temporal-only, morphological-only) had not finished at the
+time of writing, so we do not yet report whether PPG adds anything over ECG alone.
 
 **We cannot conclude the method never works.** We can conclude it does not work *on this
 dataset, under honest evaluation*, and that its fusion component was inactive.
