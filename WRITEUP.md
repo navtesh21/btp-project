@@ -1,898 +1,1343 @@
-# Noninvasive Blood Glucose Estimation from ECG and PPG
+# Predicting Blood Sugar From a Heartbeat
 
-### A reproduction of the Choquet-integral multimodel approach, and four ways it silently fails
+### A complete explanation of this project, assuming you know nothing about it
 
 **B.Tech Final Year Project — Navtesh Maken**
 
 ---
 
-This document explains the whole project from first principles: what the problem is, what
-every piece of mathematics does, what we built, what we found, and what we can and cannot
-claim. It is written so that you can read it once and then explain any part of it out loud.
+## How to read this document
+
+This document assumes **no prior knowledge**. Not of medicine, not of machine learning,
+not of mathematics beyond school algebra. Every technical word is explained the first
+time it is used.
+
+It is written in the order the project actually happened, so you can follow the reasoning
+rather than just the conclusions.
+
+If you only have five minutes, read [Part 1](#part-1--what-this-project-was-trying-to-do)
+and [Part 9](#part-9--what-we-found).
 
 **Contents**
 
-1. [The problem](#1-the-problem)
-2. [The paper we reproduced](#2-the-paper-we-reproduced)
-3. [The data](#3-the-data)
-4. [Stage 1 — from recordings to examples](#4-stage-1--from-recordings-to-examples)
-5. [Stage 2 — describing a signal with numbers](#5-stage-2--describing-a-signal-with-numbers)
-6. [Stage 3 — the Choquet integral, in full](#6-stage-3--the-choquet-integral-in-full)
-7. [How we grade a prediction](#7-how-we-grade-a-prediction)
-8. [Results](#8-results)
-9. [The four findings](#9-the-four-findings)
-10. [Limitations](#10-limitations)
-11. [How to run it](#11-how-to-run-it)
-12. [Glossary](#12-glossary)
-13. [References](#13-references)
+- [Part 1 — What this project was trying to do](#part-1--what-this-project-was-trying-to-do)
+- [Part 2 — The words you need](#part-2--the-words-you-need)
+- [Part 3 — What machine learning actually is](#part-3--what-machine-learning-actually-is)
+- [Part 4 — The paper we copied](#part-4--the-paper-we-copied)
+- [Part 5 — Getting the data](#part-5--getting-the-data)
+- [Part 6 — Step one: turning recordings into examples](#part-6--step-one-turning-recordings-into-examples)
+- [Part 7 — Step two: turning a squiggle into numbers](#part-7--step-two-turning-a-squiggle-into-numbers)
+- [Part 8 — Step three: the Choquet integral](#part-8--step-three-the-choquet-integral)
+- [Part 9 — What we found](#part-9--what-we-found)
+- [Part 10 — Answering hard questions](#part-10--answering-hard-questions)
+- [Part 11 — Glossary](#part-11--glossary)
 
 ---
 
-## 1. The problem
+# Part 1 — What this project was trying to do
 
-**Glucose** is the sugar your blood carries as fuel. **Insulin** is the hormone that moves
-it out of the blood into cells. In **Type 1 diabetes** the body makes almost none, so
-glucose accumulates in the blood.
+## The problem in one paragraph
 
-Both directions are dangerous:
+People with diabetes have to measure the sugar in their blood several times every day.
+The only accurate ways to do this involve **breaking the skin** — pricking a finger, or
+wearing a sensor with a filament pushed under the skin. This is painful, expensive, and
+never stops. About **590 million adults** worldwide live like this.
 
-| Range (mmol/L) | Name | Consequence |
-|---|---|---|
-| below 3.9 | hypoglycaemia | Confusion, seizure, coma — within minutes |
-| 3.9 – 10.0 | normal | The target |
-| above 10.0 | hyperglycaemia | Damage to nerves, eyes, kidneys, vessels — over years |
+## The idea
 
-Measuring it today means breaking the skin: a **finger-prick** 4–10 times a day, or a
-**continuous glucose monitor (CGM)** whose filament sits under the skin and is replaced
-every 10–14 days. Roughly 590 million adults worldwide manage diabetes this way.
+Your heart is affected by your blood sugar. We can measure your heart's activity
+painlessly, with a strap or a smartwatch. **So could we measure the heart instead, and
+work backwards to the blood sugar?**
 
-**The goal of this field:** read glucose from a signal we can already measure painlessly.
+If yes, diabetes monitoring becomes free and painless. That is why many research groups
+are trying.
 
-### Why a heartbeat might carry the information
+## What we did
 
-This is not arbitrary. There are two established mechanisms:
+In 2024 a research paper claimed to have solved a large part of this. We **rebuilt their
+method from scratch** and **tested it on different data** to see whether the claim holds
+up.
 
-**When glucose is low.** The body releases adrenaline. Adrenaline activates β2-adrenergic
-receptors, which stimulate the Na⁺/K⁺ ATPase pump, driving potassium *into* cells and
-lowering blood potassium (hypokalaemia). Potassium governs how heart-muscle cells
-repolarise — reset electrically after each beat — so this stretches the recovery phase.
-Visible on an ECG as a **longer QT interval** and flattened T waves.
+It did not. And the reasons why turned out to be more interesting than the original claim.
 
-**When glucose is high.** Sustained hyperglycaemia suppresses vagal (parasympathetic)
-activity and impairs coronary microcirculation, producing **QT prolongation, ST-segment
-depression** and **reduced heart-rate variability**.
+## The one-sentence answer
 
-> **The caveat that shapes this entire project.** These mechanisms explain *detecting an
-> event* — a dangerous low or high. They do not promise that the exact glucose number can
-> be read off the waveform. Detection is **classification**; reading the number is
-> **regression**, and it is far harder. Published ECG classification results reach 84–94%
-> accuracy; regression results consistently do not hold up.
+> We rebuilt a published method for predicting blood sugar from heart signals, tested it
+> honestly, and found that **it performs worse than a "model" that ignores the patient
+> entirely and always guesses the average** — plus four specific, reusable reasons why
+> methods like it can look like they work when they don't.
 
 ---
 
-## 2. The paper we reproduced
+# Part 2 — The words you need
 
-> Li, J. et al. *"Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG
-> Feature Fusion and Weight-Based Choquet Integral Multimodel Approach."*
-> IEEE Transactions on Neural Networks and Learning Systems, 35(10), 2024.
+Read this part once. Everything later builds on it.
 
-**Their reported results:**
+## 2.1 Blood glucose
 
-| Metric | Value |
+**Glucose** is a type of sugar. It is the fuel your cells burn. It comes from food,
+travels in your blood, and is delivered to every cell in your body.
+
+**"Blood glucose"** means: *how much glucose is currently in your blood.*
+
+We measure it in **millimoles per litre**, written **mmol/L**. You do not need to know
+what a millimole is. Treat "mmol/L" the same way you treat "km/h" — just the unit the
+number comes in.
+
+| Blood glucose | What it means |
 |---|---|
-| RMSE | 1.49 mmol/L |
-| MARD | 13.42% |
-| Parkes Zone A | 80.09% |
-| Parkes Zone A+B | 99.49% |
+| Below 3.9 mmol/L | **Too low.** Confusion, then seizure, then coma — within minutes. |
+| 3.9 to 10.0 mmol/L | **Normal.** Where a healthy body keeps it. |
+| Above 10.0 mmol/L | **Too high.** Slowly damages nerves, eyes, kidneys, blood vessels. |
 
-1.49 mmol/L approaches approved CGM accuracy. If it holds, it is a major result.
+Note the asymmetry: **too low kills you today; too high kills you over twenty years.**
+Both matter, for different reasons.
 
-**Why it needed reproducing.** The authors published their code but not their data — the
-recordings are private. The claim had never been independently checked on public data.
+## 2.2 Insulin and diabetes
 
-**Their three stages:**
+**Insulin** is a hormone — a chemical messenger. Its job is to unlock cells so glucose can
+get in. No insulin means glucose stays stuck in the blood, piling up.
 
-| Stage | What it does |
+**Type 1 diabetes** is when the body stops producing insulin almost entirely. The immune
+system has destroyed the cells that make it. It is not caused by lifestyle and cannot be
+reversed.
+
+So a person with Type 1 diabetes must:
+1. Measure their blood glucose,
+2. Calculate how much insulin they need,
+3. Inject it,
+4. Repeat, forever, several times a day.
+
+Step 1 is what this project is about.
+
+## 2.3 How blood glucose is measured today
+
+**Finger-prick test.** A small spring-loaded needle (a *lancet*) punctures a fingertip. A
+drop of blood goes onto a test strip. A meter reads it. Accurate, but painful, and done
+4–10 times a day.
+
+**Continuous glucose monitor (CGM).** A patch worn on the skin with a tiny filament
+sitting just underneath. It reports a glucose value **every 5 minutes**, automatically.
+Much better — but still invasive, the sensor must be replaced every 10–14 days, and it is
+expensive.
+
+In this project, **the CGM is our source of truth**. It tells us what the glucose actually
+was, so we can check whether our predictions were right.
+
+## 2.4 A signal
+
+A **signal** is just *a measurement taken repeatedly over time*.
+
+If you measured the temperature of a room every second and wrote down the numbers, that
+list of numbers is a signal.
+
+Two words you will see:
+
+- **Sampling rate** — how many measurements per second. Measured in **Hertz (Hz)**.
+  250 Hz means 250 measurements every second.
+- **Waveform** — what the signal looks like when you draw it as a line graph.
+
+## 2.5 ECG — the electrical signal of the heart
+
+Every heartbeat starts as a small electrical pulse that spreads through the heart muscle
+and makes it squeeze. That electricity is strong enough to be detected on the skin.
+
+An **ECG** (electrocardiogram) is a recording of that electricity. Stick electrodes on
+someone's chest, and you get a signal.
+
+One heartbeat has a shape that is the same in every healthy person, and its parts have
+names:
+
+```
+                R
+                /\                      <-- tall sharp spike
+               /  \
+              /    \        ___
+    ____/\___/      \      /   \___     <-- broad slow bump
+        P            \    /  T
+                      \  /
+                       \/
+                       S
+        |----------------------|
+              QT interval
+```
+
+| Part | What is happening in the heart |
 |---|---|
-| **1** | Record ECG and PPG, filter, cut into windows paired with glucose readings |
-| **2** | Turn each window into numbers: *temporal* features (wavelet statistics) + *morphological* features (waveform shape), then select the useful ones |
-| **3** | Three ML models each predict; a **Choquet integral** fuses their answers |
+| **P** | The upper chambers (atria) squeeze |
+| **QRS** | The lower chambers (ventricles) squeeze — this is the big spike |
+| **T** | The ventricles electrically reset, ready for the next beat |
+| **QT interval** | The time from the start of QRS to the end of T — **how long the reset takes** |
+| **RR interval** | The gap from one beat to the next |
 
-We implemented all three.
+**The QT interval is the important one for us.** Remember it.
+
+## 2.6 PPG — the light signal of blood flow
+
+**PPG** (photoplethysmogram) works completely differently.
+
+Shine a light into the skin. Some of it bounces back. Blood absorbs light, so when a pulse
+of blood arrives with each heartbeat, *less* light comes back. Measure the returning light
+and you get a signal that rises and falls once per heartbeat.
+
+**This is exactly what the green flashing light on a smartwatch is doing.**
+
+The *shape* of each pulse — how fast it rises, how it falls, whether you can see a small
+secondary bump from blood reflecting off the body — depends on how stiff or relaxed the
+blood vessels are.
+
+## 2.7 Why the heart would know anything about blood sugar
+
+This is not a wild guess. There are two documented biological mechanisms.
+
+**When blood sugar goes too LOW:**
+
+1. The body panics and releases **adrenaline**.
+2. Adrenaline activates receptors that pump **potassium** out of the blood and into cells.
+3. Potassium is what heart muscle cells use to reset electrically after each beat.
+4. Less potassium in the blood → the reset takes longer.
+5. **A longer reset = a longer QT interval, visible on the ECG.**
+
+**When blood sugar stays too HIGH:**
+
+Sustained high glucose damages the tiny blood vessels feeding the heart and dampens the
+nerve signals that calm it. This also stretches the QT interval, pushes the ST segment
+down, and makes the gaps between heartbeats more uniform than they should be.
+
+> ### The crucial caveat
+>
+> These mechanisms explain **detecting an event** — "this person is dangerously low right
+> now". They do **not** promise you can read the exact number off the waveform.
+>
+> - *"Is this person below 3.9?"* — a **yes/no** question. Called **classification**.
+> - *"What exactly is this person's glucose?"* — a **number** question. Called
+>   **regression**.
+>
+> Published work detecting events reaches 84–94% accuracy. Published work predicting the
+> exact number consistently fails to hold up.
+>
+> **This project attempted the number.** Keep that in mind — it explains a lot of what
+> follows.
 
 ---
 
-## 3. The data
+# Part 3 — What machine learning actually is
 
-### What the signals are
+If you already know this, skip to Part 4.
 
-**ECG (electrocardiogram)** — electrodes on the skin record the electrical wave that
-drives each heartbeat. One beat has a standard shape:
+## 3.1 The basic idea
+
+Normally you program a computer by telling it the rules:
+
+> "If the temperature is above 30, turn on the fan."
+
+**Machine learning is different.** You do not write the rules. Instead you show the
+computer thousands of **examples**, and it works out the rules itself.
 
 ```
-        R
-        /\
-       /  \          ___
- __/\_/    \        /   \___
-   P        \      /  T
-             \    /
-              \  /
-               \/
-               S
+        EXAMPLES                              WHAT IT LEARNS
+  ┌──────────────────────┐              ┌──────────────────────┐
+  │ heart signal → 5.2   │              │                      │
+  │ heart signal → 8.9   │  ────────>   │  some rule mapping   │
+  │ heart signal → 4.1   │              │  signal to glucose   │
+  │   ... 30,000 more    │              │                      │
+  └──────────────────────┘              └──────────────────────┘
 ```
 
-| Part | Meaning |
+Then you give it a **new** heart signal it has never seen, and it produces a number.
+
+## 3.2 The words
+
+| Word | Meaning |
 |---|---|
-| **P** | Atria contract |
-| **QRS** | Ventricles fire (the big spike) |
-| **T** | Ventricles reset (repolarisation) |
-| **QT interval** | Start of QRS to end of T — how long the reset takes. **This is what glucose affects.** |
-| **RR interval** | Gap between beats; its variability is *heart-rate variability* |
+| **Example** (or *sample*) | One piece of data: one heart-signal snippet and its true glucose |
+| **Feature** | One measurable property of that snippet (e.g. "the average heart rate was 74") |
+| **Label** (or *target*) | The right answer we are trying to predict — here, the glucose value |
+| **Model** | The thing that learns the rule |
+| **Training** | Showing the model examples so it can learn |
+| **Prediction** | The model's guess on a new example |
 
-**PPG (photoplethysmogram)** — an LED shines into the skin; a photodetector measures
-reflected light. Each heartbeat pushes a pulse of blood through, absorbing more light, so
-the signal rises and falls once per beat. This is what the green light on a smartwatch
-does. The *shape* of each pulse reflects vessel tone and blood properties.
+## 3.3 The single most important idea: train and test must be separate
 
-**CGM** — the reference. A Dexcom sensor reports glucose every 5 minutes. This is the
-"answer key".
+Imagine a student who memorises the answers to a practice exam. They score 100%. Have
+they learned anything? You cannot tell — until you give them **different questions**.
 
-### PhysioCGM
+Machine learning has exactly this problem. A model can **memorise** its training examples
+and look perfect, while having learned nothing general.
 
-> *PhysioCGM: a multimodal physiological dataset for non-invasive blood glucose
-> estimation.* Scientific Data, 2025. figshare record 28136294, **CC0** (public domain).
+So we always split the data:
 
-10 participants with Type 1 diabetes:
+- **Training set** — the model sees these and learns from them.
+- **Test set** — the model has **never seen these**. We score it only on these.
 
-| Signal | Rate | Device |
-|---|---|---|
-| ECG | 250 Hz | Zephyr BioHarness (chest strap) |
-| PPG (BVP) | 64 Hz | Empatica E4 (wristband) |
-| EDA, skin temp, accelerometry | 4–100 Hz | both (not used here) |
-| Glucose | every 5 min | Dexcom CGM |
+**How you make that split turns out to be the single most important decision in this
+entire project.** Part 9 explains why.
 
-8.6 GB of raw recordings. **It is the only open dataset carrying ECG *and* PPG against a
-CGM reference** — exactly the pair the paper needs.
+## 3.4 The three models we used
 
-*(We first used D1NAMO, which is ECG-only. Half the paper's design could not be built.
-That earlier study is archived in `legacy_d1namo/`.)*
-
-### What we ended up with
-
-| | |
-|---|---|
-| Paired ECG+PPG windows | **30,830** |
-| Features per window | **193** |
-| Participants | 10 |
-| Glucose range | 2.2 – 21.5 mmol/L |
-| Mean / SD | 7.17 / **2.519** mmol/L |
-
-**The most important number is 2.519.** That is the standard deviation of glucose, and
-therefore the RMSE achieved by a model that simply guesses the average every time.
-**Nothing counts as learning unless it beats that.**
-
----
-
-## 4. Stage 1 — from recordings to examples
-
-### Windowing
-
-For each CGM reading, take the **16 seconds** of ECG and PPG recorded immediately before
-it. 16 s ≈ 20 heartbeats, which is the window the paper specifies.
-
-- ECG: 16 s × 250 Hz = **4000 samples**
-- PPG: 16 s × 64 Hz = **1024 samples**
-
-One training example = (4000 ECG samples, 1024 PPG samples) → one glucose value.
-
-### Filtering
-
-A raw ECG contains the heartbeat plus contaminants:
-
-| Band | Content | Action |
-|---|---|---|
-| below 0.5 Hz | Baseline wander (breathing, electrode drift) | remove |
-| **0.5 – 40 Hz** | **The heartbeat** | **keep** |
-| above 40 Hz | Muscle activity, 50/60 Hz mains | remove |
-
-So: a 4th-order Butterworth band-pass at **0.5–40 Hz** — the paper's Level-1 step.
-
-**PPG needs a different band.** Sampled at 64 Hz, its Nyquist limit is 32 Hz, so a 40 Hz
-cutoff is not even representable. We use **0.5–8 Hz**, which keeps the pulse (~1–2 Hz) and
-its first few harmonics.
-
-### Hazard: the two recorders do not share a clock
-
-- The Zephyr writes **local wall-clock time**: `08/06/2022 13:32:45`
-- The Empatica writes a **Unix epoch**, i.e. **UTC**
-
-Assume they agree and every PPG window is paired with glucose from five hours away.
-Nothing crashes. Features compute. Models train. Results are meaningless.
-
-**How we resolved it.** Both devices were started by hand at roughly the same moments, so
-the correct offset is the one under which their session start times line up. We score
-every candidate:
+All three are built from **decision trees**. A decision tree is a flowchart of yes/no
+questions:
 
 ```
-UTC-5 : 16 of 20 sessions matched
-every other offset : 0-2
+                Is the QT interval > 0.42s?
+                  /                    \
+                yes                     no
+                /                        \
+    Is heart rate > 80?              predict 7.1
+        /          \
+      yes           no
+      /              \
+  predict 9.2     predict 6.4
 ```
 
-The detector **refuses to proceed** when no candidate wins decisively, rather than picking
-the best guess. That refusal caught the next problem.
-
-### Hazard: a recording that crosses daylight saving
-
-Participant **c2s04** was recorded 27 Oct – 17 Nov 2022. US clocks went back on
-**6 November**, mid-recording:
-
-| Sessions | Count | Correct offset |
-|---|---|---|
-| Before 6 Nov | 7 | UTC−5 (CDT) |
-| On/after 6 Nov | 15 | UTC−6 (CST) |
-
-**No single fixed offset is correct.** The detector scored UTC−6 at 9 and UTC−5 at 6 — no
-decisive winner — and halted. Picking the winner would have misaligned 7 sessions by an
-hour, silently.
-
-**Fix:** convert through a real IANA time zone (`America/Chicago`) using `zoneinfo`, so the
-offset is a function of the instant and the transition applies automatically.
-
-Only c2s04 crosses a transition; the others sit entirely within one season. Verified by
-re-extracting windows under the new path: largest difference **7.3 × 10⁻¹⁴** — pure
-floating-point noise.
-
----
-
-## 5. Stage 2 — describing a signal with numbers
-
-A model cannot read a waveform. 4000 raw numbers fed directly would force it to
-rediscover what a heartbeat is. Instead we compute **features**: summary numbers
-describing properties of the window.
-
-### 5a. Temporal features — the wavelet transform
-
-A heartbeat mixes a **sharp spike** (QRS, fast) with **broad waves** (P and T, slow).
-Measuring the whole thing at once blurs them together. The **Discrete Wavelet Transform
-(DWT)** separates them by repeatedly splitting the signal by speed.
-
-Using the **db4 (Daubechies-4)** wavelet to **7 levels** gives 8 signals to analyse:
-
-| Signal | Content |
-|---|---|
-| `FE0` | the original window |
-| `FE1` | fastest detail |
-| `FE2` … `FE6` | progressively slower |
-| `FE7` | slowest detail |
-
-Why it helps: a feature measuring "irregularity" means something different for the fast
-QRS than for the slow T wave. Separating them lets each be described on its own terms.
-
-### The ten features
-
-From **each** of the 8 sub-signals we compute the same 10 measurements:
-
-| Symbol | Name | In plain terms |
-|---|---|---|
-| `Kur` | Kurtosis | How spiky — are there extreme peaks? |
-| `Ske` | Skewness | Is it lopsided — do peaks lean up or down? |
-| `SM` | Signal mobility | How fast it wiggles on average |
-| `SC` | Signal complexity | How much that wiggle rate itself changes |
-| `FD` | Fractal dimension | How jagged — does detail persist on zooming in? |
-| `CD` | Correlation dimension | How many independent processes drive it |
-| `C0` | C0-complexity | What fraction is irregular rather than regular |
-| `PSE` | Power spectral entropy | Energy spread across frequencies, or concentrated? |
-| `KE` | Kolmogorov entropy | How unpredictable the next value is |
-| `SE` | Shannon entropy | How much information the value distribution carries |
-
-**8 sub-signals × 10 features = 80 per modality.**
-ECG 80 + PPG 80 = **160**, exactly the paper's count.
-
-#### Some of these in maths
-
-**Kurtosis** (4th standardised moment) and **skewness** (3rd):
-
-```
-Ske = E[(x - mu)^3] / sigma^3
-Kur = E[(x - mu)^4] / sigma^4
-```
-
-**Hjorth parameters.** With `x'` the first derivative and `x''` the second:
-
-```
-Activity   = var(x)
-Mobility   = sqrt( var(x')  / var(x)  )        <- our SM
-Complexity = Mobility(x') / Mobility(x)        <- our SC
-```
-Mobility is a mean frequency; complexity is how much that frequency varies.
-
-**Shannon entropy.** Bin the amplitudes into a histogram with probabilities `p_i`:
-
-```
-SE = - SUM_i  p_i * log2( p_i )
-```
-Maximal when all values are equally likely; zero when the signal is constant.
-
-**Power spectral entropy.** The same formula, but over the *normalised power spectrum*
-`P(f)` instead of the amplitude histogram — so it measures whether energy is spread
-across many frequencies or concentrated in a few.
-
-**Correlation dimension.** Embed the signal in `m` dimensions using delayed copies, then
-count how many pairs of points fall within radius `r`:
-
-```
-C(r) = (fraction of point pairs with distance < r)
-CD   = lim (r -> 0)  d log C(r) / d log r
-```
-In practice CD is the **slope of a log–log plot**. *That slope fit is where finding 4
-comes from (§9.4).*
-
-### 5b. Morphological features — waveform shape
-
-The paper uses a **ResNet** here. We had no GPU, and more importantly the mechanism
-linking glucose to shape is already known — so we measure it directly.
-
-| From the ECG | Why it is in the list |
-|---|---|
-| QT interval, **QTc** | Lengthens when glucose is low (adrenaline → hypokalaemia) |
-| ST segment level | Depressed under sustained hyperglycaemia |
-| T-wave amplitude, sharpness | Flattens during dysglycaemia |
-| QRS duration, amplitude | Describes the main depolarisation spike |
-| SDNN, RMSSD, pNN50 | Heart-rate variability — falls with high glucose |
-
-| From the PPG | What it captures |
-|---|---|
-| Systolic amplitude | Pulse strength |
-| Rise time, fall time | How quickly blood arrives and drains |
-| Pulse width at half height | Overall pulse shape |
-| Augmentation index | Strength of the reflected wave |
-
-**Bazett's correction** makes QT comparable across heart rates:
-
-```
-QTc = QT / sqrt(RR)
-```
-
-**HRV definitions**, over the RR interval series:
-
-```
-SDNN  = standard deviation of RR intervals
-RMSSD = sqrt( mean( (RR[i+1] - RR[i])^2 ) )
-pNN50 = percentage of successive RR differences exceeding 50 ms
-```
-
-**This substitution is a deliberate, documented deviation from the paper** — not a silent
-shortcut. Its advantage: every feature is individually citable to a mechanism. "We
-measured QT because adrenaline-driven hypokalaemia prolongs repolarisation" is a stronger
-answer than "the network learned something".
-
-**Validation.** Median heart rate 74.4 bpm; median QTc **0.405 s** against a textbook
-normal of 0.35–0.44 s; over 99% of windows physiologically plausible. The extraction is
-measuring real anatomy, not noise.
-
-**Total: 80 + 80 + 19 + 14 = 193 features.**
-
-### 5c. Feature selection
-
-More features is not better — useless ones let a model latch onto coincidences. The paper
-keeps only features surviving **three independent tests**:
-
-| Method | What it does |
-|---|---|
-| **UFS** (univariate filtering) | Test each feature alone: does it correlate with glucose? |
-| **RFE** (recursive elimination) | Train, drop the least useful, retrain, repeat |
-| **L1** (Lasso) | Fit a model penalised for using many features; useless weights go to exactly zero |
-
-A feature is kept only if **all three** select it. In our runs this typically reduced
-193 → **10**.
-
-> **The trap we avoided.** Selection must run on **training data only, inside each fold**.
-> Selecting using the whole dataset lets test answers influence which features exist, and
-> silently inflates every downstream score. Our code has *no* function that selects on a
-> whole dataset, because that function would be a footgun.
-
----
-
-## 6. Stage 3 — the Choquet integral, in full
-
-### Why combine models at all
-
-Three models, each with different failure modes:
+One tree alone is weak and easily fooled by noise. So all three of our models build
+**many** trees and combine them — differently:
 
 | Model | How it works |
 |---|---|
-| **Random Forest** | Many trees on random resamples *and* random feature subsets, averaged |
-| **Gradient Boosting** | Trees trained sequentially, each correcting the last one's errors |
-| **Bagging** | Many full trees on random resamples, averaged |
+| **Random Forest** | Builds hundreds of trees, each on a random subset of the data *and* a random subset of the features, then averages them. Randomness makes trees disagree, and averaging disagreeing trees is robust. |
+| **Bagging** | Similar, but each tree sees all features. Only the data rows are randomised. |
+| **Gradient Boosting** | Builds trees **one at a time**, where each new tree focuses on fixing the mistakes the previous trees made. |
 
-Where one is wrong another may be right. The question is *how* to combine.
+Random Forest and Bagging reduce **variance** (over-reacting to noise). Gradient Boosting
+reduces **bias** (systematically missing). Using all three and combining them is the
+paper's bet — their strengths cover each other's weaknesses.
 
-**The analogy.** Three doctors give three opinions. You could average them. But if two
-trained together and always agree, averaging counts their shared view twice. And if one is
-far more experienced, they should count for more. A good rule handles **both**.
+**How to combine their three answers is what the Choquet integral does.** That is Part 8.
 
-| Rule | Formula | Limitation |
+---
+
+# Part 4 — The paper we copied
+
+## The paper
+
+> J. Li et al., *"Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG
+> Feature Fusion and Weight-Based Choquet Integral Multimodel Approach."*
+> IEEE Transactions on Neural Networks and Learning Systems, volume 35, issue 10, 2024.
+
+IEEE TNNLS is a serious, highly-regarded journal. This is not a fringe paper.
+
+## What they claimed
+
+| Measure | Their result | What it means |
 |---|---|---|
-| Plain average | `(a+b+c)/3` | All equally good, all independent |
-| Weighted average | `w1·a + w2·b + w3·c` | Better models count more, but still assumes independence |
-| **Choquet integral** | weights on **groups** | Can express overlap *and* synergy |
+| RMSE | **1.49 mmol/L** | Typical prediction error |
+| MARD | **13.42%** | Typical error as a percentage |
+| Zone A | **80.09%** | 80% of predictions clinically harmless |
+| Zone A+B | **99.49%** | 99.5% clinically acceptable |
 
-### 6a. Fuzzy measures
+(Those measures are all explained in Part 9.)
 
-A weighted average assigns a number to each model. A **fuzzy measure** (or *capacity*)
-assigns a number to **every subset**. With 3 models there are 8 subsets:
+**1.49 mmol/L approaches the accuracy of approved medical CGM devices.** If true, it is a
+major result.
+
+## Why it needed checking
+
+The authors published their **code** but not their **data** — their recordings are
+private. Nobody had ever independently tested the method on data the authors had not
+chosen.
+
+That is what a **reproduction** is: rebuild the method from the description, run it on
+different data, see if the result survives.
+
+## Their three-stage design
+
+| Stage | What it does |
+|---|---|
+| **1. Collect and clean** | Record ECG and PPG. Remove noise. Cut into short windows, each paired with one glucose reading. |
+| **2. Describe the signal** | Turn each window into a list of numbers (features) describing its properties. |
+| **3. Predict and fuse** | Three models each predict a glucose value. A **Choquet integral** combines the three into one. |
+
+We built all three.
+
+---
+
+# Part 5 — Getting the data
+
+## 5.1 The first attempt, and why it failed
+
+We started with a public dataset called **D1NAMO** — 9 people with Type 1 diabetes, with
+ECG recordings and CGM glucose readings.
+
+**Problem: D1NAMO has ECG only. No PPG.**
+
+The paper's whole design uses *both* signals. With D1NAMO we could only build half of it.
+We did that work anyway (it is archived in `legacy_d1namo/`), but it could never be a
+fair test of the paper.
+
+## 5.2 The dataset we actually used
+
+> **PhysioCGM: a multimodal physiological dataset for non-invasive blood glucose
+> estimation.** Scientific Data, 2025.
+
+**10 people with Type 1 diabetes**, recorded with several devices simultaneously:
+
+| Signal | Device | Sampling rate |
+|---|---|---|
+| **ECG** | Zephyr BioHarness (chest strap) | 250 Hz |
+| **PPG** | Empatica E4 (wristband) | 64 Hz |
+| Skin conductance, temperature, movement | both | 4–100 Hz (we did not use these) |
+| **Glucose** | Dexcom CGM | every 5 minutes |
+
+It is released under **CC0** — public domain, completely free to use. It is 8.6 GB of raw
+recordings.
+
+**This is the only open dataset in existence with ECG *and* PPG *and* a CGM reference** —
+exactly the combination the paper requires.
+
+## 5.3 What we ended up with
+
+| | |
+|---|---|
+| Paired windows of ECG + PPG | **30,830** |
+| Numbers describing each window | **193** |
+| People | 10 |
+| Glucose range | 2.2 to 21.5 mmol/L |
+| Average glucose | 7.17 mmol/L |
+| **Standard deviation** | **2.519 mmol/L** |
+
+> ### The most important number in this document: 2.519
+>
+> **Standard deviation** measures how spread out a set of numbers is. If everyone's
+> glucose were identical, it would be 0. The more they vary, the bigger it gets.
+>
+> Here is why it matters. Imagine the laziest possible "model": it ignores the heart
+> signal completely and **always says 7.17** (the average), no matter what.
+>
+> That model's typical error would be exactly **2.519 mmol/L** — the standard deviation.
+>
+> We call this the **no-skill baseline**. It is the score you get for learning *nothing*.
+> **Any real model must beat 2.519 or it has achieved nothing at all.**
+>
+> Most published papers in this field never report this number. We report it beside
+> every single result.
+
+---
+
+# Part 6 — Step one: turning recordings into examples
+
+## 6.1 Making one example
+
+We have hours of continuous ECG and PPG, and a glucose reading every 5 minutes. We need
+discrete training examples.
+
+**For each glucose reading, take the 16 seconds of signal recorded immediately before
+it.**
+
+Why 16 seconds? That is about 20 heartbeats, which is what the paper specifies.
 
 ```
-g({})        = 0        nothing counts for nothing
+    ...ECG and PPG recorded continuously...
+    
+         |<--- 16 seconds --->|
+    ─────────────────────────────●──────────────
+                                 ↑
+                         a CGM glucose reading
+                              (e.g. 8.3)
+
+    One example = (those 16 seconds of ECG,
+                   those 16 seconds of PPG,
+                   the number 8.3)
+```
+
+At 250 Hz, 16 seconds of ECG is **4,000 numbers**. At 64 Hz, 16 seconds of PPG is
+**1,024 numbers**.
+
+We did this for every usable glucose reading across all 10 people: **30,830 examples**.
+
+## 6.2 Cleaning the signal
+
+A raw ECG contains the heartbeat **plus rubbish**:
+
+| Frequency | What it is | Keep? |
+|---|---|---|
+| Below 0.5 Hz | Slow drift as the person breathes and the electrode shifts | ✂ remove |
+| **0.5 to 40 Hz** | **The actual heartbeat** | ✓ **keep** |
+| Above 40 Hz | Electrical interference from mains power, signals from other muscles | ✂ remove |
+
+A **filter** is a mathematical operation that removes unwanted frequencies. We keep only
+0.5–40 Hz. This is exactly what the paper specifies.
+
+**PPG needs a different range.** It is sampled at only 64 Hz, and there is a hard rule
+(the *Nyquist limit*) that you can only represent frequencies up to **half** your sampling
+rate — so 32 Hz maximum. A 40 Hz cutoff is not even expressible. We use **0.5–8 Hz**,
+which keeps the pulse and its first few harmonics.
+
+## 6.3 Problem: the two devices disagree about what time it is
+
+This one nearly ruined everything, silently.
+
+- The **Zephyr** chest strap writes times like `08/06/2022 13:32:45` — **local time**.
+- The **Empatica** wristband writes a Unix timestamp — which is **UTC**, the global
+  reference.
+
+Texas in June is 5 hours behind UTC.
+
+**If you assume they agree, every PPG measurement gets paired with a glucose reading from
+five hours earlier.** Nothing crashes. The features compute. The models train. The results
+look completely normal — and are meaningless.
+
+**How we solved it.** Both devices were switched on by hand at roughly the same moments.
+So the correct time offset is the one that makes their start times line up. We tested
+every possibility:
+
+```
+UTC-5  : 16 of 20 sessions matched
+every other offset : 0 to 2 sessions matched
+```
+
+Unambiguous. **And we wrote the code to refuse to run if no answer wins clearly**, rather
+than silently picking the best guess.
+
+That refusal caught the next problem.
+
+## 6.4 Problem: one person's recording crosses a daylight-saving change
+
+Person **c2s04** was recorded from **27 October to 17 November 2022**. American clocks
+went back an hour on **6 November** — in the middle of their recording.
+
+| Their sessions | Count | Correct offset |
+|---|---|---|
+| Before 6 November | 7 | UTC−5 |
+| On or after 6 November | 15 | UTC−6 |
+
+**There is no single correct offset for this person.**
+
+Our checker scored UTC−6 at 9 sessions and UTC−5 at 6 — no clear winner — and **stopped
+the program** rather than guessing. Had it guessed the winner, 7 sessions would have been
+silently mismatched by an hour.
+
+**The fix:** instead of a fixed offset, convert through a real time zone
+(`America/Chicago`), which knows about daylight saving and applies it automatically to
+each moment.
+
+Only that one person crosses a transition. We verified the other nine were unaffected by
+recomputing their features under the new code: largest difference **0.000000000000073** —
+pure rounding noise.
+
+---
+
+# Part 7 — Step two: turning a squiggle into numbers
+
+## 7.1 Why not just feed in the raw signal?
+
+We have 4,000 raw numbers per ECG window. Why not hand those to the model?
+
+Because the model would have to work out, from scratch, what a heartbeat even *is* —
+where one beat ends and the next begins, which wiggle is the QRS. With 30,000 examples
+that is hopeless.
+
+Instead we compute **features**: summary numbers describing properties of the window.
+
+A trivial feature would be "the average value". A useful one is "how long the QT interval
+was".
+
+## 7.2 The wavelet transform, explained
+
+A heartbeat is a **mixture of fast and slow things happening at once**:
+
+- The QRS spike is **fast** — it comes and goes in about 0.1 seconds.
+- The T wave is **slow** — a broad bump lasting 0.3 seconds.
+
+If you measure "how jagged is this signal?" on the whole window at once, the fast spike
+and slow bump get blended and you learn little about either.
+
+**A wavelet transform separates them.** It repeatedly splits the signal into a faster half
+and a slower half:
+
+```
+            ORIGINAL SIGNAL
+                  │
+        ┌─────────┴─────────┐
+      fast                slow
+        │                   │
+      (keep)        ┌───────┴───────┐
+                  fast            slow
+                    │               │
+                  (keep)     ┌──────┴──────┐
+                           fast          slow
+                             │             │
+                           (keep)       ... 7 times
+```
+
+We use the **db4 wavelet** (a specific mathematical shape called Daubechies-4), split
+**7 times**, exactly as the paper specifies. That gives **8 signals** to analyse: the
+original plus 7 increasingly-slow detail layers. They are labelled `FE0` (original)
+through `FE7` (slowest).
+
+## 7.3 The ten measurements
+
+From **each** of those 8 signals we compute **the same 10 numbers**:
+
+| Symbol | Name | In plain English |
+|---|---|---|
+| `Kur` | Kurtosis | How **spiky** — are there extreme peaks? |
+| `Ske` | Skewness | How **lopsided** — do peaks lean up or down? |
+| `SM` | Signal mobility | How **fast** it wiggles on average |
+| `SC` | Signal complexity | How much that **wiggle rate itself changes** |
+| `FD` | Fractal dimension | How **jagged** — does detail persist as you zoom in? |
+| `CD` | Correlation dimension | How many **independent processes** drive it |
+| `C0` | C0-complexity | What **fraction is irregular** rather than repeating |
+| `PSE` | Power spectral entropy | Is energy **spread across frequencies** or concentrated? |
+| `KE` | Kolmogorov entropy | How **unpredictable** the next value is |
+| `SE` | Shannon entropy | How much **information** the values carry |
+
+**8 signals × 10 measurements = 80 numbers per signal type.**
+ECG gives 80, PPG gives 80 → **160**, exactly the paper's count.
+
+### A few of these in actual mathematics
+
+You can present these without deriving them, but here they are.
+
+**Skewness and kurtosis.** Take every value in the signal. Call the average `μ` (mu) and
+the standard deviation `σ` (sigma). Then:
+
+```
+Skewness  =  average of  (x − μ)³  divided by  σ³
+Kurtosis  =  average of  (x − μ)⁴  divided by  σ⁴
+```
+
+The cube keeps the sign — so skewness tells you which *direction* the signal leans. The
+fourth power makes everything positive and hugely amplifies extreme values — so kurtosis
+detects rare big spikes.
+
+**Hjorth parameters (our SM and SC).** Let `x′` be how fast the signal is changing (its
+*derivative*) and `x″` how fast *that* is changing.
+
+```
+Mobility(x)   =  √( variance(x′) / variance(x) )
+Complexity(x) =  Mobility(x′) / Mobility(x)
+```
+
+Mobility is essentially "the average frequency". Complexity is "how much that frequency
+varies".
+
+**Shannon entropy.** Sort the signal's values into bins, like a histogram. Let `pᵢ` be the
+fraction of values in bin `i`. Then:
+
+```
+SE  =  − Σ  pᵢ · log₂(pᵢ)
+```
+
+This is **maximum** when all bins are equally full (totally unpredictable) and **zero**
+when everything is in one bin (totally predictable). It is the same formula that underlies
+all of information theory.
+
+**Correlation dimension.** Take the signal and plot it against delayed copies of itself in
+`m`-dimensional space. Count what fraction of point-pairs lie within distance `r` of each
+other — call it `C(r)`. Then:
+
+```
+CD  =  the slope of  log C(r)  plotted against  log r,  as r shrinks
+```
+
+Remember that it is **a slope fitted to a graph**. That detail becomes important in
+Part 9.
+
+## 7.4 Waveform-shape features
+
+The paper uses a **neural network** for this part. We did something different, and it is
+worth being clear about why.
+
+A neural network would need a graphics card we do not have. But more importantly, **we
+already know which shapes matter** — Part 2.7 explained the biology. So rather than hope a
+network rediscovers the QT interval, we measured it directly.
+
+| From the ECG | Why |
+|---|---|
+| QT interval, **QTc** | Lengthens when glucose is low — the adrenaline/potassium mechanism |
+| ST segment level | Pushed down by sustained high glucose |
+| T-wave height and sharpness | Flattens during abnormal glucose |
+| QRS width and height | Describes the main spike |
+| SDNN, RMSSD, pNN50 | **Heart rate variability** — how irregular the beat spacing is |
+
+| From the PPG | Why |
+|---|---|
+| Pulse height | How strong the pulse is |
+| Rise time, fall time | How quickly blood arrives and drains |
+| Pulse width at half height | Overall pulse shape |
+| Augmentation index | Strength of the reflected wave from the body |
+
+**QTc** deserves an explanation. The QT interval naturally gets shorter when your heart
+beats faster, which would confuse any comparison. **Bazett's correction** removes that:
+
+```
+QTc  =  QT / √RR
+```
+
+where `RR` is the gap between beats. Now QTc is comparable across heart rates.
+
+**Heart rate variability:**
+
+```
+SDNN   =  standard deviation of the gaps between beats
+RMSSD  =  √( average of (gap[i+1] − gap[i])² )
+pNN50  =  percentage of consecutive gaps differing by more than 50 milliseconds
+```
+
+### Did our measurements actually work?
+
+We checked them against textbook physiology:
+
+| Feature | Our median | Textbook normal | Verdict |
+|---|---|---|---|
+| Heart rate | 74.4 bpm | 60–100 | ✓ |
+| **QTc** | **0.405 s** | **0.35–0.44** | ✓ |
+| RR interval | 0.806 s | 0.6–1.0 | ✓ |
+
+Over 99% of our windows fall in physiologically plausible ranges. **The extraction is
+measuring real anatomy, not noise.**
+
+**Final count: 80 (ECG wavelet) + 80 (PPG wavelet) + 19 (ECG shape) + 14 (PPG shape) =
+193 features per window.**
+
+## 7.5 Choosing which features to keep
+
+193 features is too many. Useless features let a model latch onto coincidences.
+
+The paper keeps only features that survive **three different tests**:
+
+| Test | What it does |
+|---|---|
+| **UFS** (univariate filtering) | Check each feature alone — does it correlate with glucose at all? |
+| **RFE** (recursive elimination) | Train a model, delete the least useful feature, retrain, repeat |
+| **L1** (Lasso) | Train a model that is *penalised* for using many features, forcing useless ones to exactly zero |
+
+**A feature is kept only if all three choose it.** In our runs this narrowed 193 down to
+about **10**.
+
+> ### A trap we deliberately avoided
+>
+> Feature selection must use **only the training data**, and must be redone separately for
+> every train/test split.
+>
+> If you pick features by looking at the whole dataset, the test answers have influenced
+> which features exist — and every score afterwards is inflated.
+>
+> Our code contains **no function** that selects features on a whole dataset. We left it
+> out on purpose, because having it available would eventually get it used.
+
+---
+
+# Part 8 — Step three: the Choquet integral
+
+This is the mathematical heart of the paper. Take it slowly; each step is small.
+
+## 8.1 The problem being solved
+
+Three models each produce a glucose prediction. Say:
+
+```
+Random Forest     : 9.0
+Gradient Boosting : 7.0
+Bagging           : 5.0
+```
+
+**What single number should we report?**
+
+**Option 1 — the plain average.** `(9 + 7 + 5) / 3 = 7.0`
+
+Simple, but it assumes all three models are equally good and completely independent.
+
+**Option 2 — a weighted average.** Give better models more say:
+
+```
+0.5 × 9  +  0.3 × 7  +  0.2 × 5  =  7.6
+```
+
+Better. But still limited, and here is why.
+
+## 8.2 What a weighted average cannot express
+
+> **Three doctors give you three opinions.**
+>
+> You could average them. But:
+>
+> - Two of them **trained together at the same hospital** and almost always agree. If you
+>   average all three equally, you are counting that shared training **twice**.
+> - The third has **thirty years more experience**, so should count for more.
+>
+> A weighted average handles the second point. **It cannot handle the first**, because it
+> only ever assigns importance to doctors *individually* — never to the relationship
+> between them.
+
+The Choquet integral fixes this by assigning importance to **every possible group**.
+
+## 8.3 Fuzzy measures
+
+A **fuzzy measure** (written `g`) gives a number to every possible *subset* of models. For
+three models labelled A, B, C, there are 8 subsets:
+
+```
+g({})        = 0        no models, no importance
 g({A})       = 0.30
-g({B})       = 0.25     each model alone
+g({B})       = 0.25     each model by itself
 g({C})       = 0.20
-g({A,B})     = 0.45     <- NOT 0.30+0.25: they overlap
-g({A,C})     = 0.62     <- MORE than the sum: they complement
+g({A,B})     = 0.45     <-- NOT 0.30+0.25=0.55, because A and B overlap
+g({A,C})     = 0.62     <-- MORE than 0.30+0.20=0.50, because they complement
 g({B,C})     = 0.50
 g({A,B,C})   = 1        everyone together = full importance
 ```
 
-Two rules define a valid fuzzy measure:
+**That is the whole idea.** `g({A,B}) = 0.45` says "A and B together are worth less than
+the sum of their parts, because they overlap". A weighted average physically cannot say
+this.
 
-1. **Boundary:** `g(∅) = 0` and `g(X) = 1`
-2. **Monotonicity:** if `A ⊆ B` then `g(A) ≤ g(B)` — adding a model can never reduce importance
+Only two rules make a fuzzy measure valid:
 
-**The practical problem:** for `N` models there are `2^N` subsets. For 3 that is 8; for 10
-it is 1024. Choosing them all by hand is impossible.
+1. **Boundaries:** `g(nothing) = 0` and `g(everything) = 1`
+2. **Monotonicity:** adding a model can never *decrease* importance
 
-### 6b. The Sugeno λ-measure
+**The practical problem:** with `N` models there are `2^N` subsets. For 3 that's 8. For 10
+it's 1,024. You cannot choose them all by hand.
 
-Supply **one density `g_i` per model** — how good it is alone — and the rest is generated:
+## 8.4 The Sugeno λ-measure
 
-```
-For disjoint A, B:
-
-    g(A ∪ B) = g(A) + g(B) + λ · g(A) · g(B)
-```
-
-λ is fixed by requiring `g(X) = 1`:
+The Sugeno λ-measure solves this. You supply just **one number per model** — called its
+**density**, `gᵢ`, meaning "how good is this model on its own" — and a formula generates
+all the rest:
 
 ```
-    1 + λ = ∏_i ( 1 + λ · g_i )
+g(A ∪ B)  =  g(A) + g(B) + λ · g(A) · g(B)
 ```
 
-This is a polynomial in λ; we solve it numerically and keep the root with `λ > −1`.
+Read that as: *the importance of two groups combined equals the sum of their individual
+importances, plus a correction term.*
 
-**Everything hinges on the sign of λ:**
+**λ (lambda) is that correction.** It is not chosen freely — it is forced by the rule that
+everything together must equal 1:
 
-| Condition | λ | Meaning |
+```
+1 + λ  =  ∏ᵢ (1 + λ · gᵢ)
+```
+
+(`∏` means "multiply all of these together", like `Σ` means "add all of these together".)
+
+This is an equation in one unknown. We solve it numerically.
+
+**The sign of λ tells you what kind of team you have:**
+
+| If the densities... | Then λ is... | Meaning |
 |---|---|---|
-| `Σ g_i = 1` | `λ = 0` | Additive. The Choquet integral becomes an ordinary **weighted average**. |
-| `Σ g_i > 1` | `λ < 0` | **Overlap penalty** — strong models that agree are not double-counted |
-| `Σ g_i < 1` | `λ > 0` | **Synergy bonus** — models are worth more together than apart |
+| sum to exactly 1 | `λ = 0` | Simply additive. **The Choquet integral becomes an ordinary weighted average.** |
+| sum to more than 1 | `λ < 0` | **Overlap penalty** — strong models that agree don't get counted twice |
+| sum to less than 1 | `λ > 0` | **Synergy bonus** — models are worth more together than apart |
 
-### 6c. The Choquet integral
+## 8.5 The Choquet integral itself
 
-**Step 1.** Sort the predictions, largest first: `h(1) ≥ h(2) ≥ … ≥ h(N)`
+Now we combine the predictions. Two steps.
 
-**Step 2.** Walk down the sorted list, accumulating:
-
-```
-    C = Σ_j  h(j) · [ g(A_j) − g(A_{j−1}) ]
-
-    where A_j = { the top j models }, and A_0 = ∅
-```
-
-Each prediction is weighted by **how much the group importance grew when it was added**.
-
-Sorting is what lets group importance enter at all: the weight a prediction receives
-depends on its **rank**, not its identity. And if the measure is additive (λ = 0) this
-collapses exactly to a weighted average — so the Choquet integral **generalises** the
-simpler rule.
-
-### 6d. Worked example
+**Step 1 — sort the predictions, largest first:**
 
 ```
-densities   = (0.30, 0.25, 0.20)  ->  λ = 1.2289
-predictions = ( 9.0,  7.0,  5.0)  mmol/L
-
-      g(top 1) = 0.300    weight on 9.0 = 0.300
-      g(top 2) = 0.642    weight on 7.0 = 0.342
-      g(top 3) = 1.000    weight on 5.0 = 0.358
-
-Choquet = 0.300·9 + 0.342·7 + 0.358·5 = 6.88 mmol/L
-Plain average                          = 7.00 mmol/L
+h(1) = 9.0     (the largest)
+h(2) = 7.0
+h(3) = 5.0     (the smallest)
 ```
 
-Note the weights are **not** the densities. The integral is doing something a weighted
-average cannot.
-
-### 6e. Where densities come from
-
-We estimate each model's competence **honestly**: train it on part of the training data,
-test on the part it never saw (cross-validation), and use that out-of-fold **R²**:
+**Step 2 — walk down the sorted list, and weight each prediction by how much the group
+importance grew when it was added:**
 
 ```
-g_i = clip( R²_out-of-fold(model i),  0.01,  0.99 )
+C  =  Σⱼ  h(j) · [ g(top j models) − g(top j−1 models) ]
 ```
 
-The clipping keeps densities inside `(0,1)` as the measure requires.
+In words: *give each prediction the weight equal to how much importance that model added
+when it joined the group.*
 
-**This is where it breaks.** Read §9.3.
+## 8.6 A complete worked example
+
+```
+densities    = (0.30, 0.25, 0.20)
+predictions  = ( 9.0,  7.0,  5.0)
+```
+
+**First, solve for λ.** Using `1 + λ = (1+0.30λ)(1+0.25λ)(1+0.20λ)`, we get:
+
+```
+λ = 1.2289
+```
+
+(Densities sum to 0.75, which is less than 1, so λ is positive — a synergy bonus, as
+Part 8.4 said.)
+
+**Now build the cumulative group importances:**
+
+```
+g(top 1) = 0.300
+g(top 2) = 0.300 + 0.25 + 1.2289×0.300×0.25 = 0.642
+g(top 3) = 1.000                                      (by definition)
+```
+
+**The weights are the growth at each step:**
+
+```
+weight on 9.0  =  0.300 − 0     =  0.300
+weight on 7.0  =  0.642 − 0.300 =  0.342
+weight on 5.0  =  1.000 − 0.642 =  0.358
+```
+
+**And the answer:**
+
+```
+Choquet  =  0.300×9.0 + 0.342×7.0 + 0.358×5.0  =  6.88 mmol/L
+
+(a plain average would have given 7.00)
+```
+
+**Notice the weights (0.300, 0.342, 0.358) are not the densities (0.30, 0.25, 0.20).**
+That difference is the Choquet integral doing something a weighted average cannot.
+
+## 8.7 Where densities come from — and why this matters enormously
+
+We need one density per model: "how good is this model on its own?"
+
+We measure it **honestly**, using cross-validation:
+
+1. Split the training data into 3 parts.
+2. Train on parts 1 and 2, predict part 3. Train on 1 and 3, predict 2. And so on.
+3. Every row now has a prediction made by a model that **never saw it during training**.
+4. Score those predictions. That score becomes the density.
+
+The score we use is **R²** (explained in Part 9.1). It is clipped into the range
+(0.01, 0.99) because densities must sit strictly between 0 and 1.
+
+**That clipping is where everything breaks.** Part 9.4.
 
 ---
 
-## 7. How we grade a prediction
+# Part 9 — What we found
+
+## 9.1 How we score a prediction
+
+Four measures. You need all four, and the reason why is itself a finding.
 
 ### RMSE — root mean square error
 
 ```
-RMSE = sqrt( mean( (pred − true)^2 ) )
+RMSE = √( average of (prediction − truth)² )
 ```
 
-The typical size of an error, in mmol/L. Squaring punishes large misses extra. Same units
-as glucose, so directly interpretable.
+Take every error, square it, average, square-root. **Squaring punishes large mistakes
+extra.** The result is in mmol/L, so it is directly comparable to glucose values.
+
+*Our baseline: 2.519 mmol/L.*
 
 ### MARD — mean absolute relative difference
 
 ```
-MARD = mean( |pred − true| / true ) × 100%
+MARD = average of ( |prediction − truth| / truth ) × 100%
 ```
 
-The error as a **percentage** of the true value. Being off by 2 when the truth is 4 is far
-worse than when it is 15 — MARD captures that; RMSE does not. This is the metric glucose
-device makers quote.
+The error as a **percentage of the true value**. Being wrong by 2 when the truth is 4 is
+far worse than being wrong by 2 when the truth is 15. RMSE treats those identically; MARD
+does not. This is the measure glucose-device manufacturers quote.
 
-### R² — coefficient of determination
+### R² — the fraction of variation explained
 
 ```
-R² = 1 − SS_residual / SS_total
+R² = 1 − (how wrong the model is) / (how wrong the baseline is)
 ```
 
-The fraction of variance explained. **This is the metric that exposes a model performing
-no better than the mean** — it goes to 0, or negative, while RMSE and MARD still look
-respectable. We report it precisely for that reason.
+| R² | Meaning |
+|---|---|
+| 1.0 | Perfect prediction |
+| 0.5 | Explains half the variation |
+| **0.0** | **Exactly as good as always guessing the average** |
+| **negative** | **WORSE than always guessing the average** |
 
-### The Parkes error grid
+**R² is the metric that exposes a useless model.** RMSE and MARD still look respectable
+when a model has learned nothing; R² goes to zero or below. This is exactly why we report
+it, and why we report the baseline's score beside every model's.
 
-Plot every prediction: true glucose on x, predicted on y. A panel of 100 diabetes
-clinicians divided that plane into five zones by **clinical consequence**:
+### The Parkes error grid — does the error actually harm the patient?
+
+The three measures above are mathematical. This one is clinical.
+
+Plot every prediction: **true glucose across, predicted glucose up**. A panel of 100
+diabetes doctors divided that plane into five zones by **how much harm acting on that
+prediction would cause**:
 
 | Zone | Meaning |
 |---|---|
-| **A** | No effect on clinical action |
-| **B** | Action changes, outcome unaffected |
-| **C** | Action changes, outcome affected |
-| **D** | Dangerous failure to detect |
-| **E** | Opposite treatment given |
+| **A** | No effect on treatment — harmless |
+| **B** | Treatment changes, but the patient is fine |
+| **C** | Treatment changes and the outcome is affected |
+| **D** | Dangerous failure to detect a real problem |
+| **E** | Exactly the wrong treatment given |
 
-Boundaries are published coordinates (Pfützner et al. 2013) in mg/dL; we convert with
-`1 mmol/L = 18.018 mg/dL`.
+"Zone A+B percent" is **the headline clinical number** in this entire research field.
 
-> **Hold this thought.** Most glucose readings sit in a narrow band. So a model predicting
-> a **constant** also lands most points in A and B. A high Zone A+B score does not by
-> itself prove anything. §9.2 tests exactly this.
+> **Hold on to this.** Most glucose readings cluster in a narrow band around normal. So a
+> model that always predicts a **constant** will *still* land most of its points inside
+> zones A and B. **A high Zone A+B score therefore does not prove a model works.**
+> Section 9.3 tests exactly this.
 
-### The three split protocols
+## 9.2 Finding 1 — How you split the data matters more than the model
 
-Consecutive windows from one person are extremely similar. How you split matters:
+Remember Part 3.3: the model must be tested on data it has never seen. **But there are
+different ways to arrange that**, and they answer different questions.
 
-| Protocol | Description | Question it answers |
+| Protocol | How it splits | The question it answers |
 |---|---|---|
-| **1. Random window** | Shuffle all windows, split at random | *Optimistic.* The same patient appears on both sides — the model can recognise the person. This is what most published work reports. |
-| **2. Subject-aware** | Split so no patient is on both sides | Can it generalise **across people**? |
-| **3. Leave-one-subject-out** | Train on 9, test on the 10th, rotate | The **deployment** case: a brand-new patient |
+| **1. Random window** | Shuffle all 30,830 windows, split at random | The **same person** appears in both training and test. Can the model do well on someone it has already studied? |
+| **2. Subject-aware** | Split so no person is on both sides | Can it generalise to **different people**? |
+| **3. Leave-one-subject-out** | Train on 9 people, test on the 10th, rotate through all 10 | The **real-world** case: a brand-new patient |
 
----
+**Protocol 1 is what most published work reports.** And here is the problem with it:
+consecutive windows from the same person are extremely similar. The model can learn to
+*recognise the person* and recall their typical glucose — which is not at all the same as
+learning about glucose.
 
-## 8. Results
+### The results
 
-All numbers below are from the **fused** feature set (all 193 features), 30,830 windows,
-10 participants.
-
-### Protocol 1 — random window split
-
-| Method | R² | RMSE | MARD | Zone A | Zone A+B |
-|---|---|---|---|---|---|
-| RandomForest | **0.194** | 2.262 | 25.7% | 53.0% | 93.2% |
-| GradientBoosting | 0.101 | 2.389 | 27.5% | 48.8% | 92.3% |
-| Bagging | **0.194** | 2.262 | 25.7% | 53.1% | 93.2% |
-| PlainAverage | 0.183 | 2.278 | 26.1% | 51.9% | 93.1% |
-| WeightedAverage | 0.183 | 2.278 | 26.1% | 51.9% | 93.1% |
-| **Choquet** | 0.149 | 2.324 | **24.9%** | 52.9% | **93.7%** |
-| *MinOfModels* (control) | 0.139 | 2.338 | 24.8% | 52.9% | 93.8% |
-| **NoSkillBaseline** | **−0.000** | 2.520 | 29.1% | 45.3% | 90.9% |
-
-Models genuinely learn here: R² 0.194 against a baseline of 0.000.
-
-### Protocol 2 — subject-aware split
-
-| Method | R² | RMSE | MARD | Zone A | Zone A+B |
-|---|---|---|---|---|---|
-| RandomForest | −0.249 | 2.815 | 33.6% | 40.4% | 88.2% |
-| GradientBoosting | −0.243 | 2.809 | 32.8% | 40.4% | 88.5% |
-| Bagging | −0.248 | 2.814 | 33.6% | 40.4% | 88.2% |
-| PlainAverage | −0.228 | 2.791 | 33.1% | 40.6% | 88.5% |
-| WeightedAverage | −0.228 | 2.791 | 33.1% | 40.6% | 88.5% |
-| **Choquet** | −0.223 | 2.786 | 31.5% | 41.9% | 89.4% |
-| *MinOfModels* (control) | −0.226 | 2.790 | 31.3% | 42.1% | 89.5% |
-| **NoSkillBaseline** | **−0.074** | **2.610** | **30.3%** | **43.7%** | **90.0%** |
-
-**Every model is worse than guessing.** And the baseline has the **best Zone A+B**.
-
-### Protocol 3 — leave-one-subject-out
-
-| Method | R² | RMSE | MARD | Zone A | Zone A+B |
-|---|---|---|---|---|---|
-| RandomForest | −0.125 | 2.672 | 31.0% | 43.8% | 89.8% |
-| GradientBoosting | −0.092 | 2.632 | 30.1% | 43.7% | 90.5% |
-| Bagging | −0.125 | 2.672 | 31.0% | 43.7% | 89.8% |
-| PlainAverage | −0.094 | 2.636 | 30.4% | 44.1% | 90.2% |
-| WeightedAverage | −0.094 | 2.636 | 30.4% | 44.1% | 90.2% |
-| **Choquet** | −0.097 | 2.639 | **28.9%** | 45.6% | **91.3%** |
-| *MinOfModels* (control) | −0.101 | 2.644 | 28.7% | 45.8% | 91.3% |
-| **NoSkillBaseline** | **−0.035** | **2.564** | 29.7% | 44.1% | 90.6% |
-
-`corr(Choquet, min) = 0.9972`.
-
-### The headline comparison
-
-| | Random window | Subject-aware | Leave-one-subject-out |
+| | Random window | Subject-aware | Leave-one-out |
 |---|---|---|---|
 | Best single model R² | +0.194 | −0.243 | −0.092 |
-| **Choquet R²** | **+0.149** | **−0.223** | **−0.097** |
+| **Choquet fusion R²** | **+0.149** | **−0.223** | **−0.097** |
 | No-skill baseline R² | −0.000 | −0.074 | −0.035 |
 | Choquet RMSE | 2.324 | 2.786 | 2.639 |
 | Baseline RMSE | 2.520 | 2.610 | 2.564 |
-| **Beats the baseline?** | **yes** | **no** | **no** |
+| **Beat the baseline?** | **yes** | **no** | **no** |
 
-Same data. Same model. Same code. **Only the split changed.**
+**Same data. Same code. Same models. Only the split changed.**
 
-> **One honest caveat about ordering.** Leave-one-subject-out is *not* worse than the
-> subject-aware split (−0.097 against −0.223), even though it is the stricter protocol.
-> The reason is training-set size: LOSO trains on 9 of 10 patients per fold while
-> subject-aware trains on 4 of 5, so LOSO simply has more data. The baseline shifts the
-> same way (−0.035 against −0.074) for the same reason.
+Under the random split, the model genuinely learns something (R² = +0.149). Under either
+honest split, **every method — including the fusion — is worse than a model that ignores
+the patient and guesses the average.**
+
+> ### An honest note about the ordering
 >
-> So the claim is **not** "results degrade monotonically with strictness". The claim
-> supported by the data is narrower and still decisive: **under either honest split,
-> every method — including the fusion — falls behind a model that predicts a constant.**
+> Leave-one-out (−0.097) is **not worse** than subject-aware (−0.223), even though it is
+> the stricter protocol. That might look inconsistent, so here is the reason: leave-one-out
+> trains on 9 of 10 people per round, while subject-aware trains on 4 of 5. It simply has
+> more data. The baseline shifts the same way (−0.035 versus −0.074).
+>
+> So we do **not** claim "results get monotonically worse as the test gets stricter". We
+> claim the narrower thing the data actually supports: **under either honest split, every
+> method falls behind the baseline.**
 
----
+This independently confirms a 2026 study (arXiv:2608.01820) that re-tested five published
+PPG-glucose methods and found the best scored R² = 0.60 under random splitting and −0.08
+under participant-aware splitting. **We reproduce that collapse on a different signal
+(ECG), a different dataset, and a different kind of model.**
 
-## 9. The four findings
-
-### 9.1 The evaluation protocol dominates the model
-
-Moving from a random split to a subject-aware split takes R² from **+0.149 to −0.223**;
-under leave-one-subject-out it is **−0.097**. In both honest protocols the fusion sits
-below the no-skill baseline. The model did not change; only the question did.
-
-Under a random split, windows from the same patient appear in both training and test.
-Because consecutive windows from one person are highly correlated, the model can identify
-*the person* and recall their typical glucose — which is not the same as learning about
-glucose.
-
-This independently replicates a 2026 finding (arXiv:2608.01820) that tested five published
-PPG-glucose methods: the best scored R² 0.60 under random splitting and **−0.08** under
-participant-aware splitting. **We reproduce that collapse on a different signal (ECG), a
-different dataset, and a different model class (fuzzy-integral fusion, not CNNs).**
-
-### 9.2 Clinical metrics mask the failure
+## 9.3 Finding 2 — The clinical metric cannot tell a real model from a constant
 
 Under the subject-aware split:
 
-| | R² | Zone A+B |
+| Method | R² | Zone A+B |
 |---|---|---|
-| Choquet | −0.223 | 89.4% |
-| RandomForest | −0.249 | 88.2% |
-| **NoSkillBaseline** | **−0.074** | **90.0%** |
+| Choquet fusion | −0.223 | 89.4% |
+| Random Forest | −0.249 | 88.2% |
+| Gradient Boosting | −0.243 | 88.5% |
+| **No-skill baseline** | **−0.074** | **90.0%** |
 
-The baseline — which explains *zero* variance by construction — has **both the best R² and
-the best clinical score**. A reader shown only the Parkes numbers would see 88–90% across
-the board and conclude the method works.
+**Read that last row again.** The baseline — which predicts a constant and explains
+literally zero variance — has **both the best R² and the best clinical score of anything
+tested.**
 
-**Zone metrics cannot certify a model.** They must be reported alongside a baseline
-computed on the same folds.
+Someone shown only the Zone A+B column sees 88–90% across the board and concludes the
+method works.
 
-### 9.3 The fusion degenerates into a minimum operator
+### Why this happens
 
-#### The theorem
+Most glucose readings sit in a narrow band. Predicting a constant near the middle of that
+band already lands the large majority of points inside the acceptable zones. The grid was
+designed to catch *dangerous* errors, not to detect *uselessness*.
 
-If all `N` densities equal the same value `g`, the Sugeno λ-measure becomes **symmetric**:
-it depends only on how many models are in a group, never on which ones. The Choquet
-integral then reduces to an **OWA operator** with geometric weights:
+### The picture that shows it
+
+![Parkes error grid](figures/results/fig10_parkes_subject_aware.png)
+
+Look at the shape of the cloud. A model that had learned anything would produce points
+along the **diagonal** — low predictions for low true values, high for high.
+
+Ours is a **horizontal band**. Whether the person's real glucose was 4 or 20, the model
+says roughly 6 to 9.
+
+**That is what "no better than guessing the average" looks like.** And it still scores
+89.4% on the clinical metric.
+
+> **The practical rule:** never report a clinical zone score without reporting a baseline
+> computed on the same data beside it.
+
+## 9.4 Finding 3 — The fusion had quietly stopped fusing
+
+### The clues
+
+Two things in our output did not make sense:
+
+1. **The weighted average and the plain average gave byte-identical answers** — 3.927 and
+   3.927. If the weights differed at all, that is impossible.
+2. **Every model's density came out at exactly 0.01** — the floor value we clip to.
+
+### The theorem
+
+Suppose all `N` densities equal the same value `g`. Then the fuzzy measure becomes
+**symmetric** — it depends only on *how many* models are in a group, never *which* ones.
+
+When that happens, the Choquet integral collapses into a fixed formula:
 
 ```
-    w_j = g · β^(j−1)        where β = 1 + λg
+wⱼ  =  g · β^(j−1),    where  β = 1 + λg
 
-    j = 1 is the LARGEST prediction, j = N the smallest
+and  j = 1  is the LARGEST prediction,  j = N  the smallest
 ```
 
-*Derivation.* With equal densities, `g(A_j)` depends only on `|A_j| = j`. The Sugeno
-recursion gives `g(A_j) = [(1+λg)^j − 1] / λ`. Therefore
+**Derivation** (three substitutions):
 
 ```
-w_j = g(A_j) − g(A_{j−1}) = [ (1+λg)^j − (1+λg)^{j−1} ] / λ = g · (1+λg)^{j−1}
+Step 1.  Apply the Sugeno rule j times with identical densities:
+             g(top j)  =  [ (1 + λg)^j − 1 ] / λ
+
+Step 2.  The weight is the growth at each step:
+             wⱼ  =  g(top j) − g(top j−1)
+                 =  [ β^j − β^(j−1) ] / λ
+                 =  g · β^(j−1)
+
+Step 3.  Check they sum to 1, as they must:
+             Σⱼ wⱼ  =  g(β^N − 1)/(β − 1)  =  (β^N − 1)/λ  =  g(everything)  =  1  ✓
 ```
 
-and `Σ_j w_j = g·(β^N − 1)/(β − 1) = (β^N − 1)/λ = g(X) = 1`. ∎
+**Now the crucial consequence.** Because weak models give densities summing to less than
+1, we get `λ > 0`, therefore `β > 1`, therefore **wⱼ grows as j grows** — piling weight
+onto the *smallest* prediction.
 
-Because `Σ g_i < 1 ⟹ λ > 0 ⟹ β > 1`, the weights **grow toward the smallest prediction**.
-As `g → 0`, weight concentrates entirely on the minimum.
-
-| g | λ | w(largest) | w(middle) | w(smallest) | Collapses to |
+| g | λ | weight on largest | on middle | **on smallest** | It becomes |
 |---|---|---|---|---|---|
-| 0.010 | 846.24 | 0.010 | 0.095 | **0.895** | **minimum operator** |
-| 0.050 | 57.75 | 0.050 | 0.194 | 0.756 | rank-weighted OWA |
-| 0.100 | 15.41 | 0.100 | 0.254 | 0.646 | rank-weighted OWA |
-| 0.200 | 2.81 | 0.200 | 0.312 | 0.488 | rank-weighted OWA |
-| 0.333 | 0.00 | 0.333 | 0.333 | 0.333 | **arithmetic mean** |
+| **0.010** | 846.24 | 0.010 | 0.095 | **0.895** | **the minimum** |
+| 0.050 | 57.75 | 0.050 | 0.194 | 0.756 | rank-weighted |
+| 0.100 | 15.41 | 0.100 | 0.254 | 0.646 | rank-weighted |
+| 0.200 | 2.81 | 0.200 | 0.312 | 0.488 | rank-weighted |
+| 0.333 | 0.00 | 0.333 | 0.333 | 0.333 | **the plain average** |
 
-#### The empirical confirmation
+At our observed density of 0.01, **89.5% of the weight sits on the smallest prediction**.
+
+### Confirming it on the actual data
+
+The theorem predicts the output should be almost exactly `min(model1, model2, model3)`. We
+checked:
 
 | | Value |
 |---|---|
-| `corr(Choquet output, min of the 3 models)` | **0.998** |
-| Mean absolute gap to `min()` | 0.036–0.042 mmol/L |
-| Mean absolute gap to the **mean** | 0.27–0.31 mmol/L (7× larger) |
+| Correlation between Choquet output and `min()` | **0.998** |
+| Average gap to `min()` | 0.04 mmol/L |
+| Average gap to the **mean** | 0.27 mmol/L (7× larger) |
 
-**The published method's distinguishing component was returning
-`min(model1, model2, model3)`.**
+> **The published method's distinguishing component — the weight-based Choquet integral —
+> was returning `min(m1, m2, m3)`.**
 
-#### Two ways this happens
+### Two ways this happens, and the second is worse
 
-**(a) A bug.** Our first runs called `cross_val_predict(model, X, y, cv=3)` with an
-*integer*. scikit-learn expands an integer to `KFold` **without shuffling** — contiguous
-blocks of rows. Our table is sorted by patient, so each inner "fold" was a block of whole
-patients, and the density silently measured *cross-patient* generalisation. That is near
-zero, so every density hit the 0.01 floor. Fixed by passing an explicit shuffled splitter;
-out-of-fold R² went from **−0.16 to +0.11** and the densities came alive (RF 0.10–0.12,
-GB 0.04–0.07, Bagging 0.10–0.12).
+**(a) A programming bug.** Our first runs called `cross_val_predict(model, X, y, cv=3)`
+passing the number 3. The library turns a bare number into a splitter that takes
+**consecutive blocks** of rows. Our table is sorted by person — so each "fold" was a block
+of whole people, and the density was accidentally measuring cross-person generalisation
+instead of ordinary skill. That is near zero, so every density hit the floor.
 
-**(b) A genuine symptom.** Under the subject-aware protocol — with the *correct*
-group-aware inner CV — the out-of-fold R² values were genuinely negative:
+Fixed by passing a proper shuffled splitter. The out-of-fold R² went from **−0.16 to
++0.11** and the densities came alive: Random Forest 0.10–0.12, Gradient Boosting
+0.04–0.07, Bagging 0.10–0.12. The integral then correctly gave the weakest model about
+half the weight of the others.
+
+**(b) A genuine symptom — and this is the deeper point.** Under the honest subject-aware
+protocol, with the *correct* splitter, the out-of-fold scores were genuinely negative:
 
 ```
-r2_RandomForest      = -0.160
-r2_GradientBoosting  = -0.112
-r2_Bagging           = -0.160
+Random Forest      −0.160
+Gradient Boosting  −0.112
+Bagging            −0.160
 ```
 
-so the densities floored *legitimately*, and every fold was flagged `minimum-like OWA`
-with `weight_on_min = 0.895`.
+So the densities floored **legitimately**, and every single fold was flagged
+`minimum-like OWA` with 89.5% of weight on the minimum.
 
-> **This is the deeper point.** The degeneracy is not only a bug to fix. It is a failure
-> mode that **triggers exactly when the base models cannot generalise** — precisely the
-> situation where a practitioner most wants the fusion to help. The method quietly
-> converts "my models are weak" into "my fusion is now a min operator", with no warning.
+> **The degeneracy is not merely a bug to fix. It is a failure mode that triggers exactly
+> when the base models cannot generalise — which is precisely the situation in which a
+> practitioner most wants the fusion to help. The method silently converts "my models are
+> weak" into "my fusion is now a minimum operator", with no warning of any kind.**
 
-**Novelty boundary — state this honestly.** The equivalence *symmetric measure ⟹ OWA
-operator* is standard aggregation theory (Grabisch 1995; Marichal 2000) and must be cited.
-The contribution here is identifying it as a **practical failure mode** of
-performance-based density estimation, giving the closed-form diagnostic, and demonstrating
-it in a published biomedical pipeline.
+**Being honest about what is new here.** The mathematical fact that a symmetric measure
+gives an OWA operator is standard, established theory (Grabisch 1995; Marichal 2000) and
+must be cited as such. Our contribution is identifying it as a **practical failure mode**
+of performance-based density estimation, providing the closed-form diagnostic, and
+demonstrating it in a published biomedical pipeline.
 
-### 9.4 A standard feature library is non-deterministic
+## 9.5 Finding 4 — A standard library gives different answers every time
 
-Correlation dimension is estimated as the slope of a log–log plot. The `nolds` library
-fits that slope with **RANSAC** — RANdom SAmple Consensus, which repeatedly tries random
-subsets — and does **not seed it**. So identical input gives different output.
+While verifying that a rebuild matched our earlier results, **they did not match**. The
+cause was not our code.
+
+Recall from Part 7.3 that correlation dimension is **the slope of a log-log graph**. The
+library we use (`nolds`) fits that slope with **RANSAC** — a method that repeatedly tries
+**random** subsets of points and keeps the best. And it does not seed the randomness.
+
+**So identical input produces different output.**
 
 | Fitting method | Distinct values from 30 identical calls |
 |---|---|
-| `RANSAC` (the default) | **5** |
-| `poly` (least squares) | **1** |
+| RANSAC (the library's default) | **5** |
+| Ordinary least squares | **1** |
 
-Rebuilding one participant with the deterministic fit changed up to **72%** of
-correlation-dimension values. The other **177 features were bit-identical** — the control
-proving the cause was the fit, not our changes.
+Rebuilding one person's data with the deterministic fit changed **up to 72%** of the
+correlation-dimension values. Meanwhile **all 177 other features were bit-identical** —
+which is the control proving the cause was the slope fit and nothing else we changed.
 
-**Fix:** pass `fit="poly"` explicitly. Both methods agree on the modal value; only one
-always returns it.
+**The fix is one argument:** `fit="poly"`. Both methods agree on the typical value; only
+one always returns it.
 
-Any result computed from these features was irreproducible — nobody re-running the
-pipeline, *including us*, would get the same numbers. It was found only because we tested
-whether identical input gives identical output.
+**Why this matters:** any result computed from these features was **irreproducible**.
+Nobody re-running the pipeline — including us — would get the same numbers twice. We only
+found it because we tested whether identical input gives identical output, which almost
+nobody does.
 
-### Plus: the clock and DST hazards (§4)
+## 9.6 Finding 5 — Adding a second signal does not help
 
-A fifth and sixth way to get confident wrong answers, both caught by a guard written to
-refuse rather than guess.
+The paper's own ablation showed ECG alone at 1.56, PPG alone at 1.82, and both fused at
+1.49 — fusion best. We tested the same thing:
 
----
+| Feature set | Features | R² | RMSE |
+|---|---|---|---|
+| PPG only | 94 | −0.075 | 2.612 |
+| Fused (ECG + PPG) | 193 | −0.097 | 2.639 |
+| Temporal only | 160 | −0.102 | 2.645 |
+| ECG only | 99 | −0.106 | 2.650 |
+| **No-skill baseline** | — | **−0.035** | **2.564** |
 
-## 10. Limitations
+Two observations:
 
-**The morphological branch is not the paper's.** They use a ResNet on signal segments; we
-use hand-crafted physiological features. Defensible and more interpretable, but not
-identical — so this is a reproduction of the paper's *design*, not a bit-exact replication.
+1. **Fusing the two signals is *worse* than the better one alone.** PPG-only (−0.075)
+   beats the fused set (−0.097). The paper found the opposite.
+2. **Every feature set lands within 0.031 R² of every other, and all are behind the
+   baseline.** Halving the feature count moves the number by 0.009. Dropping 33 features
+   moves it by 0.005.
 
-**Ten patients is still small.** PhysioCGM is the largest open ECG+PPG+CGM dataset
-available, but ten people cannot represent the diversity of diabetes, of body types, or of
-cardiac comorbidity.
+**That flatness is the real result.** When feature choice barely moves the number and
+nothing beats a constant predictor, the ranking between configurations carries no
+information — it is variation around a null. We therefore do **not** claim "PPG is better
+than ECG" from a 0.03 gap between two failing models.
 
-**The CGM reference is itself approximate.** It reads interstitial fluid, lags blood
-glucose by 5–15 minutes, and carries ~9–10% error. Our accuracy ceiling is set by our
-reference.
+## 9.7 The findings together
 
-**We did not tune hyperparameters.** Model settings follow the paper. A tuned version
-might do better — though tuning honestly requires a third data split.
+| # | Finding | The evidence |
+|---|---|---|
+| **1** | The evaluation protocol dominates the model | R² +0.149 → −0.223 on identical data |
+| **2** | Clinical metrics mask failure | A constant predictor scores best on **both** R² and Zone A+B |
+| **3** | The fusion degenerates into `min()` | `corr = 0.998`, in every configuration tested |
+| **4** | A standard library is non-deterministic | Up to 72% of values change between identical runs |
+| **5** | The second signal adds nothing | All feature sets within 0.031 R², all behind the baseline |
 
-**The ablation is incomplete.** All three split protocols ran, but the feature-set
-ablations (ECG-only, PPG-only, temporal-only, morphological-only) had not finished at the
-time of writing, so we do not yet report whether PPG adds anything over ECG alone.
+Plus the two data hazards from Part 6 — mismatched clocks and a daylight-saving
+transition — both caught by checks written to **refuse rather than guess**.
 
-**We cannot conclude the method never works.** We can conclude it does not work *on this
-dataset, under honest evaluation*, and that its fusion component was inactive.
-
----
-
-## 11. How to run it
-
-```bash
-# Stage 1: extract 193 features per window for all 10 subjects (~2.5 h)
-python run_stage1.py                 # per-subject checkpoints; resumable
-
-# Stages 2+3: leakage-controlled evaluation (~15 min per configuration)
-python run_evaluation.py             # all configs, in priority order
-python run_evaluation.py fused       # just the headline three
-
-# The degeneracy figures (no data needed, seconds)
-python -m bgfusion.figures_theory
-
-# Rebuild the slide deck (auto-fills results)
-node deck/main.js
-```
-
-### Code layout
-
-| Path | Contents |
-|---|---|
-| `bgfusion/stage1_data.py` | Loading, clock/timezone alignment, filtering, windowing |
-| `bgfusion/features_temporal.py` | db4 DWT + the 10 temporal features |
-| `bgfusion/stage2_morphological.py` | QT, ST, T-wave, HRV, PPG pulse shape |
-| `bgfusion/stage2_fusion.py` | Feature sets + UFS ∩ RFE ∩ L1 selection |
-| `bgfusion/choquet.py` | Sugeno λ solver + Choquet integral |
-| `bgfusion/stage3_fusion.py` | The three models, densities, `degeneracy_report` |
-| `bgfusion/evaluate.py` | Three protocols, two controls, grading |
-| `bgfusion/error_grid.py` | Parkes error grid zones |
-| `legacy_d1namo/` | The earlier ECG-only study (archived, not deleted) |
-
-**Three things deliberately built to fail loudly rather than guess:**
-
-1. `detect_timezone()` raises when no candidate zone wins decisively
-2. `select_features()` takes only training data — there is no whole-dataset variant
-3. `degeneracy_report()` flags every fold where the fusion stops discriminating
+**The unifying point:** at five different layers of the same pipeline — the data
+alignment, the feature library, the fusion operator, the evaluation protocol, and the
+reporting metric — this method produced confident, plausible numbers that were wrong,
+while appearing to work perfectly.
 
 ---
 
-## 12. Glossary
+# Part 10 — Answering hard questions
+
+Likely questions, with honest answers.
+
+**"Did you just fail to implement it properly?"**
+
+Possible, and we cannot fully rule it out. But: our morphological features match textbook
+physiology (QTc median 0.405 s against a normal range of 0.35–0.44); our pipeline
+reproduces its own results exactly after the determinism fix; and under the random-split
+protocol — the one the paper uses — our models *do* learn (R² = +0.194). The machinery
+works. It is the honest evaluation it does not survive.
+
+**"Isn't 10 people too few?"**
+
+Yes, and we say so. But PhysioCGM is the **largest open dataset in existence** with all
+three required signals, and 30,830 windows is substantially more than most published work
+in this area uses. More people would strengthen the conclusion; they would not reverse a
+negative R².
+
+**"You didn't use their neural network. Isn't that the problem?"**
+
+It is the most substantial difference, and we flag it prominently. Two things soften it:
+our hand-crafted features measure exactly the quantities the biology predicts, and the
+*wavelet* features — which we reproduced exactly as specified — perform the same as
+everything else (−0.102). The failure is not localised to the part we changed.
+
+**"Why is your accuracy so much worse than the paper's?"**
+
+Different data, and different evaluation. On their protocol (random splitting) we get a
+positive R². We simply also ran the protocols they did not.
+
+**"So is noninvasive glucose monitoring impossible?"**
+
+We are not claiming that. We are claiming that **this method, on this data, under honest
+evaluation, does not work** — and that four specific mechanisms can make such a method
+look like it does. Detecting *events* (hypo/hyper) is a different and more promising
+problem, well supported by the biology in Part 2.7.
+
+**"What would you do next?"**
+
+Reframe from regression to classification. The biology supports detecting dangerous lows,
+not reading exact numbers. That is a different question with a real chance of a positive
+answer.
+
+## What we cannot claim
+
+- That the method never works — only that it does not here, under honest evaluation.
+- That PPG is worse than ECG — the gap is noise between two failing configurations.
+- That our morphological features are equivalent to the paper's neural network.
+- That 10 people represent the diversity of diabetes.
+
+---
+
+# Part 11 — Glossary
 
 | Term | Meaning |
 |---|---|
-| **BVP** | Blood volume pulse — the PPG signal as the Empatica records it |
-| **CGM** | Continuous glucose monitor |
-| **DWT** | Discrete wavelet transform |
-| **ECG** | Electrocardiogram — the heart's electrical activity |
-| **Fuzzy measure** | A function assigning importance to every *subset* of sources |
-| **LOSO** | Leave-one-subject-out |
-| **MARD** | Mean absolute relative difference |
-| **mmol/L** | Millimoles per litre — glucose units (1 mmol/L = 18.018 mg/dL) |
-| **OWA** | Ordered weighted average — weights by rank, not identity |
-| **Out-of-fold** | Predicted by a model that never saw that row in training |
-| **PPG** | Photoplethysmogram — blood volume measured optically |
-| **QT interval** | Start of QRS to end of T; how long the heart takes to reset |
-| **QTc** | QT corrected for heart rate (Bazett: `QT/√RR`) |
-| **RMSE** | Root mean square error |
-| **Sugeno λ-measure** | A fuzzy measure built from one density per source |
+| **Bagging** | A model that builds many trees on random data samples and averages them |
+| **Baseline (no-skill)** | A "model" that always predicts the average; the score to beat |
+| **BVP** | Blood volume pulse — the PPG signal as the Empatica device records it |
+| **CGM** | Continuous glucose monitor — the under-skin sensor giving our true values |
+| **Choquet integral** | A way of combining predictions that accounts for overlap between models |
+| **Classification** | Predicting a category (e.g. "low / normal / high") |
+| **Cross-validation** | Repeatedly training on part of the data and testing on the rest |
+| **Density** (fuzzy) | A number saying how good one model is on its own |
+| **DWT** | Discrete wavelet transform — splits a signal into fast and slow layers |
+| **ECG** | Electrocardiogram — a recording of the heart's electrical activity |
+| **Feature** | One measurable property of a signal window |
+| **Fuzzy measure** | A function giving an importance to every *group* of models |
+| **Gradient Boosting** | A model that builds trees in sequence, each fixing the last one's errors |
+| **Hz (Hertz)** | Measurements per second |
+| **LOSO** | Leave-one-subject-out — train on all people but one, test on that one |
+| **MARD** | Mean absolute relative difference — error as a percentage of the true value |
+| **mmol/L** | The unit of blood glucose (1 mmol/L = 18.018 mg/dL) |
+| **OWA** | Ordered weighted average — weights depend on rank, not on which model |
+| **Out-of-fold** | A prediction made by a model that never saw that row during training |
+| **Overfitting** | Memorising the training data instead of learning a general rule |
+| **Parkes error grid** | A chart scoring predictions by how much clinical harm they'd cause |
+| **PPG** | Photoplethysmogram — blood flow measured with light |
+| **QT interval** | Time from the start of QRS to the end of T; how long the heart takes to reset |
+| **QTc** | QT corrected for heart rate, via `QT/√RR` |
+| **R²** | Fraction of variation explained; 0 = no better than the average, negative = worse |
+| **Random Forest** | A model using many trees on random data *and* random feature subsets |
+| **Regression** | Predicting a number (as opposed to a category) |
+| **RMSE** | Root mean square error — typical error size, in the original units |
+| **Sampling rate** | How many measurements per second |
+| **Standard deviation** | A measure of how spread out a set of numbers is |
+| **Sugeno λ-measure** | A fuzzy measure generated from one density per model |
+| **Training / test set** | Data the model learns from / data used only to score it |
 
 ---
 
-## 13. References
+# References
 
-1. Li, J. et al. "Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG Feature Fusion and Weight-Based Choquet Integral Multimodel Approach." *IEEE Trans. Neural Networks and Learning Systems* 35(10), 2024.
+1. Li, J. et al. "Noninvasive Blood Glucose Monitoring Using Spatiotemporal ECG and PPG Feature Fusion and Weight-Based Choquet Integral Multimodel Approach." *IEEE Transactions on Neural Networks and Learning Systems* 35(10), 2024.
 2. *PhysioCGM: a multimodal physiological dataset for non-invasive blood glucose estimation.* Scientific Data, 2025. figshare 28136294 (CC0).
 3. *Reassessing the Feasibility of PPG-Based Non-Invasive Blood Glucose Level Estimation.* arXiv:2608.01820, 2026.
 4. *Advances in Electrocardiogram-Based Non-Invasive Blood Glucose Monitoring Technology.* Review, 2026.
 5. Parkes, J. L. et al. "A New Consensus Error Grid to Evaluate the Clinical Significance of Inaccuracies in the Estimation of Blood Glucose." *Diabetes Care* 23(8), 2000.
-6. Pfützner, A. et al. "Technical Aspects of the Parkes Error Grid." *J. Diabetes Science and Technology* 7(5), 2013.
+6. Pfützner, A. et al. "Technical Aspects of the Parkes Error Grid." *Journal of Diabetes Science and Technology* 7(5), 2013.
 7. Eckert, B. & Agardh, C.-D. "Hypoglycaemia leads to an increased QT interval in normal men." *Clinical Physiology* 18(6), 1998.
 8. Grabisch, M. "Fuzzy integral in multicriteria decision making." *Fuzzy Sets and Systems* 69(3), 1995.
 9. Marichal, J.-L. "On Choquet and Sugeno integrals as aggregation functions." In *Fuzzy Measures and Integrals*, 2000.

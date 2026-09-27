@@ -10,8 +10,12 @@ Run on **PhysioCGM** (10 Type-1 diabetes patients, ECG + PPG + CGM, CC0) instead
 authors' private data — **30,830 paired windows, 193 features**.
 
 **📄 [Read the full write-up →](WRITEUP.md)** — the problem, every formula derived, what
-we built, what we found, and what we cannot claim. Written to be readable without a
-background in ML or signal processing.
+we built, what we found, and what we cannot claim. Written from zero: every technical term
+is explained the first time it appears, assuming no background in medicine, machine
+learning or mathematics beyond school algebra.
+
+**🎤 [Presentation guide →](PRESENTATION_GUIDE.md)** — what to say on each of the 16
+slides, what to point at, the questions you will be asked, and the answers.
 
 ---
 
