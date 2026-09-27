@@ -48,6 +48,7 @@ os.environ["TMP"] = os.environ["TEMP"] = _SCRATCH
 import time  # noqa: E402
 import warnings  # noqa: E402
 
+import joblib  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from bgfusion.evaluate import choquet_vs_min, run_protocol, summarise  # noqa: E402
@@ -68,6 +69,14 @@ CONFIGS = [
     ("temporal", "loso"),
     ("morphological", "loso"),
 ]
+
+
+# RandomForest and Bagging are built with n_jobs=-1, so each one spawns a worker per
+# core (16 here) and holds a copy of the working set in every worker. On a 15.7 GB
+# machine that is what got this run OS-killed for low memory partway through the
+# ablations. Capping joblib globally bounds it without touching the model definitions,
+# which must stay as the paper specifies them.
+MODEL_N_JOBS = 6
 
 
 def main() -> None:
@@ -111,4 +120,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Bound every joblib pool underneath this run, including the ones sklearn creates
+    # inside RandomForest and Bagging.
+    with joblib.parallel_config(n_jobs=MODEL_N_JOBS):
+        main()

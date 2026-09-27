@@ -65,20 +65,26 @@ NOTES = {
     "grows toward the SMALLEST. At g=0.01 that is 89.5% on the minimum. "
     "Confirmation: corr 0.998 with min(). DO NOT SKIP the dark box - it is not only a "
     "bug, it fires exactly when the models cannot generalise.",
-13: "60s. CUT IF SHORT - the result is already on slide 12. Three substitutions: "
+13: "60s. Two points. LEFT: every bar is past the dashed baseline - no subset of the "
+    "193 features recovers glucose. And the ordering runs the WRONG WAY: fewer features "
+    "score better, which is what fitting noise looks like. RIGHT: the worst models by "
+    "R-squared carry the HIGHEST clinical score. Not weak - inverted. A model predicting "
+    "a narrow band near the average is never dangerous, just useless - and the grid only "
+    "catches danger.",
+14: "60s. CUT IF SHORT - the result is already on slide 12. Three substitutions: "
     "apply Sugeno j times, subtract consecutive terms, check the geometric series sums "
     "to 1. The red box is the point: weak models force beta > 1, which piles weight "
     "on the smallest prediction.",
-14: "60s. RANSAC = random sample consensus, unseeded, so identical input gives "
+15: "60s. RANSAC = random sample consensus, unseeded, so identical input gives "
     "different output - 5 distinct values in 30 calls. Up to 72% of correlation-"
     "dimension values changed. POINT AT THE SECOND NUMBER: 177 other features "
     "bit-identical - that is the control proving it was the slope fit, not anything "
     "else we changed. Found only because we tested determinism, which almost nobody does.",
-15: "90s. Four contributions, then the amber box. Say the limits CONFIDENTLY, not "
+16: "90s. Four contributions, then the amber box. Say the limits CONFIDENTLY, not "
     "apologetically: cannot claim the method never works, only that it does not here "
     "under honest evaluation and that its fusion was inactive. Stating limitations is "
     "the point of a reproduction, not a weakness.",
-16: "15s. 'Full write-up with every derivation is in the repository.' Then STOP "
+17: "15s. 'Full write-up with every derivation is in the repository.' Then STOP "
     "TALKING. Leave this up, or go back to slide 15 for questions.",
 }
 

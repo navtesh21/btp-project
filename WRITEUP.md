@@ -1192,31 +1192,58 @@ Nobody re-running the pipeline — including us — would get the same numbers t
 found it because we tested whether identical input gives identical output, which almost
 nobody does.
 
-## 9.6 Finding 5 — Adding a second signal does not help
+## 9.6 Finding 5 — No feature set works, and fewer features work better
 
 The paper's own ablation showed ECG alone at 1.56, PPG alone at 1.82, and both fused at
-1.49 — fusion best. We tested the same thing:
+1.49 — fusion best. We ran the same comparison, plus two more, all under
+leave-one-subject-out:
 
-| Feature set | Features | R² | RMSE |
-|---|---|---|---|
-| PPG only | 94 | −0.075 | 2.612 |
-| Fused (ECG + PPG) | 193 | −0.097 | 2.639 |
-| Temporal only | 160 | −0.102 | 2.645 |
-| ECG only | 99 | −0.106 | 2.650 |
-| **No-skill baseline** | — | **−0.035** | **2.564** |
+| Feature set | Number of features | R² | RMSE | Zone A+B |
+|---|---|---|---|---|
+| **No-skill baseline** | 0 | **−0.035** | **2.564** | 90.6% |
+| Morphological (shape) only | 33 | −0.070 | 2.606 | 90.8% |
+| PPG only | 94 | −0.075 | 2.612 | 90.6% |
+| Fused (ECG + PPG) | 193 | −0.097 | 2.639 | 91.3% |
+| Temporal (wavelet) only | 160 | −0.102 | 2.645 | 91.5% |
+| ECG only | 99 | −0.106 | 2.650 | 91.5% |
 
-Two observations:
+![Ablation](figures/results/fig_ablation.png)
 
-1. **Fusing the two signals is *worse* than the better one alone.** PPG-only (−0.075)
-   beats the fused set (−0.097). The paper found the opposite.
-2. **Every feature set lands within 0.031 R² of every other, and all are behind the
-   baseline.** Halving the feature count moves the number by 0.009. Dropping 33 features
-   moves it by 0.005.
+**Three things to notice.**
 
-**That flatness is the real result.** When feature choice barely moves the number and
-nothing beats a constant predictor, the ranking between configurations carries no
-information — it is variation around a null. We therefore do **not** claim "PPG is better
-than ECG" from a 0.03 gap between two failing models.
+**First, every single feature set is behind the baseline.** The whole spread, from best to
+worst, is 0.036 in R² — and the baseline sits above all of them. There is no subset of
+these 193 features that recovers glucose under honest evaluation.
+
+**Second, fusing the two signals is *worse* than the better one alone.** PPG-only
+(−0.075) beats the fused set (−0.097). The paper found the opposite. We do **not** read
+this as "PPG is better than ECG" — a 0.03 gap between two failing configurations is
+noise, not evidence.
+
+**Third, and most tellingly: fewer features score better.** Look at the ordering.
+33 features → −0.070. 94 → −0.075. 193 → −0.097. 160 → −0.102. 99 → −0.106.
+
+That is not a clean monotonic line, but the direction is clear and it is the wrong way
+round for a method that is learning. **When adding information makes a model worse, the
+model is fitting noise.** More features simply provide more ways to latch onto
+coincidences in the training people that do not hold for a new person.
+
+### And the clinical metric runs backwards
+
+Now compare the two columns of that table.
+
+| | R² (real skill) | Zone A+B (clinical headline) |
+|---|---|---|
+| Best R² | baseline, −0.035 | 90.6% |
+| Worst R² | ECG only, −0.106 | **91.5%** |
+
+**The models with the worst R² carry the highest clinical scores.** The relationship is
+not merely weak — it is *inverted*.
+
+This is section 9.3 taken to its conclusion. A model that is bad in a particular way —
+predicting a narrow band near the population average — scores *well* on a grid designed to
+catch dangerous errors, precisely because a narrow band near the average is never
+dangerous. It is just useless.
 
 ## 9.7 The findings together
 
@@ -1226,7 +1253,7 @@ than ECG" from a 0.03 gap between two failing models.
 | **2** | Clinical metrics mask failure | A constant predictor scores best on **both** R² and Zone A+B |
 | **3** | The fusion degenerates into `min()` | `corr = 0.998`, in every configuration tested |
 | **4** | A standard library is non-deterministic | Up to 72% of values change between identical runs |
-| **5** | The second signal adds nothing | All feature sets within 0.031 R², all behind the baseline |
+| **5** | No feature set works, and fewer work better | All five within 0.036 R², all behind the baseline, and Zone A+B *inversely* related to R² |
 
 Plus the two data hazards from Part 6 — mismatched clocks and a daylight-saving
 transition — both caught by checks written to **refuse rather than guess**.

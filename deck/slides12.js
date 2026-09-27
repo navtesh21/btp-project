@@ -525,9 +525,44 @@ module.exports = function build() {
     );
   }
 
+  // ---- 9c. THE ABLATION --------------------------------------------------
+  {
+    const s = contentSlide("Finding 4: no feature set works - and fewer features work better");
+    s.addImage({ path: "figures/results/fig_ablation.png",
+                 x: M, y: 1.4, w: 12.1, h: 3.7 });
+    s.addShape(pres.ShapeType.roundRect, {
+      x: M, y: 5.3, w: 6.0, h: 1.3, rectRadius: 0.05,
+      fill: { color: INK }, line: { color: INK },
+    });
+    s.addText("Adding information made it worse", {
+      x: M + 0.25, y: 5.45, w: 5.5, h: 0.3, isTextBox: true, margin: 0,
+      fontFace: BODY, fontSize: 13, bold: true, color: MINT,
+    });
+    s.addText(
+      "33 features score -0.070; 193 score -0.097. When more information makes a model " +
+      "worse, it is fitting noise.",
+      { x: M + 0.25, y: 5.77, w: 5.5, h: 0.7, isTextBox: true, margin: 0,
+        fontFace: BODY, fontSize: 12, color: "D6E6EA" }
+    );
+    s.addShape(pres.ShapeType.roundRect, {
+      x: 6.85, y: 5.3, w: 5.95, h: 1.3, rectRadius: 0.05,
+      fill: { color: "FBEFEF" }, line: { color: "FBEFEF" },
+    });
+    s.addText("And the clinical score runs backwards", {
+      x: 7.1, y: 5.45, w: 5.45, h: 0.3, isTextBox: true, margin: 0,
+      fontFace: BODY, fontSize: 13, bold: true, color: RED,
+    });
+    s.addText(
+      "The models with the WORST R-squared (-0.106) carry the HIGHEST Zone A+B (91.5%). " +
+      "Not weak - inverted.",
+      { x: 7.1, y: 5.77, w: 5.45, h: 0.7, isTextBox: true, margin: 0,
+        fontFace: BODY, fontSize: 12, color: INK }
+    );
+  }
+
   // ---- 10. NON-DETERMINISM -----------------------------------------------
   {
-    const s = contentSlide("Finding 4: a standard feature library returns different answers for identical input");
+    const s = contentSlide("Finding 5: a standard feature library returns different answers for identical input");
     s.addText(
       "One of the ten features is the correlation dimension, estimated as the slope of a " +
       "log-log plot. The library fits that slope with RANSAC - a method that tries RANDOM " +

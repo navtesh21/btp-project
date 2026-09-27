@@ -34,7 +34,8 @@ appearing to work:
 | **1** | **The evaluation protocol dominates the model** | R² **+0.149** under a random split, **−0.223** and **−0.097** under the two honest ones — identical data and code |
 | **2** | **Clinical metrics mask the failure** | A constant predictor scores the **best** Parkes Zone A+B (90.0%) *and* the best R² of anything tested |
 | **3** | **The fusion degenerates into a minimum operator** | `corr(Choquet output, min of the models) = 0.998` |
-| **4** | **A standard feature library is non-deterministic** | `nolds.corr_dim` defaults to an unseeded random fit; up to **72%** of values change between identical runs |
+| **4** | **No feature set works, and fewer features work better** | All five sets within 0.036 R², all behind the baseline — and Zone A+B runs *inversely* to R² |
+| **5** | **A standard feature library is non-deterministic** | `nolds.corr_dim` defaults to an unseeded random fit; up to **72%** of values change between identical runs |
 
 Plus two silent data hazards caught by guards written to refuse rather than guess: the two
 recorders do not share a clock, and one patient's recording crosses a daylight-saving
@@ -82,6 +83,23 @@ that predicts a constant.
 on 9 of 10 patients per fold rather than 4 of 5, so it has more data. The baseline moves
 the same way. The claim is not that results degrade monotonically with strictness — it is
 that both honest protocols put every method behind the baseline.)*
+
+### The ablation: every feature set, leave-one-subject-out
+
+| Feature set | Features | R² | RMSE | Zone A+B |
+|---|---|---|---|---|
+| **No-skill baseline** | 0 | **−0.035** | **2.564** | 90.6% |
+| Morphological (shape) only | 33 | −0.070 | 2.606 | 90.8% |
+| PPG only | 94 | −0.075 | 2.612 | 90.6% |
+| Fused (ECG + PPG) | 193 | −0.097 | 2.639 | 91.3% |
+| Temporal (wavelet) only | 160 | −0.102 | 2.645 | 91.5% |
+| ECG only | 99 | −0.106 | 2.650 | 91.5% |
+
+![Ablation](figures/results/fig_ablation.png)
+
+Three things: **every** set is behind the baseline; **fewer features score better**
+(33 beats 193), which is what fitting noise looks like; and the clinical score runs
+**backwards** — the worst models by R² carry the highest Zone A+B.
 
 ![Parkes error grid](figures/results/fig10_parkes_subject_aware.png)
 

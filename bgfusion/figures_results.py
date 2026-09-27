@@ -252,6 +252,78 @@ def figure_zone_vs_r2(tag="subject_aware"):
     _save(fig, "fig_zone_vs_r2.png")
 
 
+
+# ----------------------------------------------------------------------------------
+# The feature-set ablation
+# ----------------------------------------------------------------------------------
+def figure_ablation():
+    """Every feature set under leave-one-subject-out, against the baseline.
+
+    Two things this figure has to make visible: that all five land in a narrow band
+    behind the baseline, and that the ordering runs OPPOSITE to feature count - which
+    is the signature of fitting noise rather than signal.
+    """
+    sets = [
+        ("morphological_loso", "Morphological (shape)", 33),
+        ("ppg_only_loso", "PPG only", 94),
+        ("ecg_only_loso", "ECG only", 99),
+        ("temporal_loso", "Temporal (wavelet)", 160),
+        ("fused_loso", "Fused (ECG + PPG)", 193),
+    ]
+    rows = []
+    for tag, label, n in sets:
+        p = os.path.join(RESULTS, f"summary_{tag}.csv")
+        if not os.path.exists(p):
+            continue
+        s = pd.read_csv(p).set_index("Method")
+        rows.append((label, n, float(s.loc["Choquet", "R2"]),
+                     float(s.loc["Choquet", "ZoneA+B"])))
+    if not rows:
+        return
+    base = pd.read_csv(os.path.join(RESULTS, "summary_fused_loso.csv")).set_index("Method")
+    base_r2 = float(base.loc["NoSkillBaseline", "R2"])
+    base_zab = float(base.loc["NoSkillBaseline", "ZoneA+B"])
+
+    rows.sort(key=lambda r: r[2])                      # worst R2 first
+    labels = [f"{l}  ({n})" for l, n, _, _ in rows] + ["NO-SKILL BASELINE  (0)"]
+    r2s = [r[2] for r in rows] + [base_r2]
+    zabs = [r[3] for r in rows] + [base_zab]
+    colours = [GREY] * len(rows) + [RED]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12.2, 4.4), sharey=True)
+    y = np.arange(len(labels))
+
+    axes[0].barh(y, r2s, height=0.6, color=colours)
+    axes[0].axvline(base_r2, color=INK, ls="--", lw=1.3)
+    for yi, v in zip(y, r2s):
+        axes[0].text(v - 0.004, yi, f"{v:+.3f}", va="center", ha="right",
+                     fontsize=9, color=INK)
+    axes[0].set_xlabel("R$^2$   (0 = no better than the mean; negative = worse)")
+    axes[0].set_xlim(min(r2s) - 0.035, 0.005)
+
+    axes[1].barh(y, zabs, height=0.6, color=colours)
+    axes[1].axvline(base_zab, color=INK, ls="--", lw=1.3)
+    for yi, v in zip(y, zabs):
+        axes[1].text(v + 0.06, yi, f"{v:.1f}%", va="center", fontsize=9, color=INK)
+    axes[1].set_xlabel("Parkes Zone A+B (%)   -  the usual clinical headline")
+    axes[1].set_xlim(89.5, 92.4)
+
+    for ax in axes:
+        _style(ax)
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=9.5)
+        ax.invert_yaxis()
+
+    fig.suptitle("Every feature set falls behind the baseline - and the clinical score "
+                 "runs the wrong way", fontsize=12.5, color=INK, y=1.05)
+    fig.text(0.5, -0.06,
+             "Feature counts in brackets. Fewer features score BETTER on R-squared, which "
+             "is what fitting noise looks like. Meanwhile the worst models by R-squared "
+             "carry the highest Zone A+B.",
+             ha="center", fontsize=9.5, color=MUTED, style="italic")
+    _save(fig, "fig_ablation.png")
+
+
 def main():
     print("Drawing result figures:")
     for tag in ("random_window", "subject_aware", "loso"):
@@ -259,6 +331,7 @@ def main():
         figure_timeseries(tag, n_subjects=1)
     figure_protocol_collapse()
     figure_zone_vs_r2()
+    figure_ablation()
     print(f"\nDone. Figures in {FIG_DIR}/")
 
 

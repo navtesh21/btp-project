@@ -2,14 +2,14 @@
 
 ### What to say on every slide, and what you will be asked
 
-**Deck:** `BTP_presentation.pptx` — 16 slides
+**Deck:** `BTP_presentation.pptx` — 17 slides (speaker notes are in presenter view)
 **Companion:** [`WRITEUP.md`](WRITEUP.md) — the full explanation of everything
 
 ---
 
 ## Before you start
 
-**Total time:** about 15 minutes at a comfortable pace, plus questions.
+**Total time:** about 16 minutes at a comfortable pace, plus questions.
 
 **The one sentence you must land.** If the audience remembers nothing else:
 
@@ -18,7 +18,7 @@
 > and always guesses the average."*
 
 **Your strongest slide is number 9** (the scatter plot). If you are running out of time,
-cut slides 6 and 13 — never slide 9.
+cut slides 6 and 14 — never slide 9.
 
 **A note on tone.** This is a negative result, and that is fine. Do not apologise for it.
 A reproduction that finds where a method breaks is worth more than one that repeats a
@@ -544,9 +544,41 @@ that's what piles the weight onto the smallest prediction."
 
 ---
 
+# Slide 13 — The ablation
+
+> *"Finding 4: no feature set works — and fewer features work better"*
+
+**Time: 1 minute**
+
+### What to say
+
+"I ran every feature set separately under the strictest protocol.
+
+**[point to the left panel]**
+
+Every bar is past the dashed line — that's the baseline. No subset of these 193 features
+recovers glucose. The whole spread, best to worst, is 0.036 in R-squared.
+
+And look at the ordering. 33 features scores minus 0.070. 193 features scores minus 0.097.
+**Fewer features do better.**
+
+That direction is the wrong way round for a method that's learning. When adding
+information makes a model worse, the model is fitting noise — more features just give it
+more coincidences to latch onto.
+
+**[point to the right panel]**
+
+Now compare the two panels. The models with the *worst* R-squared carry the *highest*
+clinical score — 91.5 percent. The relationship isn't weak, it's inverted.
+
+That's slide 10 taken to its conclusion. A model that predicts a narrow band near the
+population average is never *dangerous*, so the grid scores it well. It's just useless."
+
+---
+
 # Slide 14 — Non-determinism
 
-> *"Finding 4: a standard feature library returns different answers for identical input"*
+> *"Finding 5: a standard feature library returns different answers for identical input"*
 
 **Time: 1 minute**
 
@@ -580,7 +612,7 @@ nobody does that."
 
 ---
 
-# Slide 15 — Contributions and limits
+# Slide 16 — Contributions and limits
 
 > *"What this contributes, and what we cannot claim"*
 
@@ -620,13 +652,13 @@ Stating limitations isn't a weakness in a reproduction. It's the point of one."
 
 ---
 
-# Slide 16 — References
+# Slide 17 — References
 
 **Time: 15 seconds**
 
 "References are here, and the full write-up with every derivation is in the repository."
 
-**Then stop talking.** Leave this slide up, or go back to slide 15 for questions.
+**Then stop talking.** Leave this slide up, or go back to slide 16 for questions.
 
 ---
 
@@ -706,7 +738,7 @@ is reusable by someone else working on a completely different problem."
 
 ### If you have 5 minutes instead of 15
 
-Slides **1, 4, 8, 9, 15**. That's the problem, the baseline, the result, the picture, and
+Slides **1, 4, 8, 9, 16**. That's the problem, the baseline, the result, the picture, and
 the contribution.
 
 ### If something goes wrong with the projector
