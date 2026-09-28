@@ -42,3 +42,7 @@ figures/*.code-workspace
 node_modules/
 deck_png/
 package-lock.json
+
+# ---- deck build intermediates ----
+nsut_png/
+deck_tpl/

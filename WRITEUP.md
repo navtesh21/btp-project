@@ -30,7 +30,8 @@ and [Part 9](#part-9--what-we-found).
 - [Part 8 — Step three: the Choquet integral](#part-8--step-three-the-choquet-integral)
 - [Part 9 — What we found](#part-9--what-we-found)
 - [Part 10 — Answering hard questions](#part-10--answering-hard-questions)
-- [Part 11 — Glossary](#part-11--glossary)
+- [Part 11 — The presentation, slide by slide](#part-11--the-presentation-slide-by-slide)
+- [Part 12 — Glossary](#part-12--glossary)
 
 ---
 
@@ -1318,7 +1319,64 @@ answer.
 
 ---
 
-# Part 11 — Glossary
+# Part 11 — The presentation, slide by slide
+
+The deck `nsut_deck.pptx` follows the department's prescribed Mid-Term-Review structure.
+This section says what each slide contains, which part of this document it comes from,
+and what the slide is actually *for*. A fuller narration — what to say out loud, where to
+pause — is in `PRESENTATION_GUIDE.md`.
+
+| # | Slide | Content | Source |
+|---|---|---|---|
+| 1 | Title | Project title, name, roll number | — |
+| 2 | Contents | The prescribed section list | — |
+| 3 | Introduction | Why glucose matters, why measuring it hurts, the ECG mechanism, and the classification-vs-regression caveat | [Part 1](#part-1--what-this-project-was-trying-to-do), [Part 2](#part-2--the-words-you-need) |
+| 4 | Literature Survey (1/2) | The paper under test, and its own comparison against four prior methods | [Part 4](#part-4--the-paper-we-copied) |
+| 5 | Gaps Identified | Five gaps: no independent validation; protocol not controlled; no baseline reported; fusion never audited; determinism unverified | §9 |
+| 6 | Aims / Objectives | The aim as a question, five objectives, and the scope limits | — |
+| 7 | Literature Survey (2/2) | The leakage studies and the aggregation theory that bounds our novelty claim | §9.2, §9.4 |
+| 8 | **Problem Formulation** | Fuzzy measures, the Sugeno λ-measure, the Choquet integral | [Part 8](#part-8--step-three-the-choquet-integral) |
+| 9 | Solution Methodology (1/2) | The three levels, the device table, the study population | [Parts 5–6](#part-5--getting-the-data) |
+| 10 | Solution Methodology (2/2) | Hjorth, entropy, QTc, RMSSD, and the paper's eqs. (5) and (6) | [Part 7](#part-7--step-two-turning-a-squiggle-into-numbers) |
+| 11 | **Results (1/4)** | Three split protocols, each beside its baseline; RMSE/MARD/R² definitions | §9.1, §9.2 |
+| 12 | **Results (2/4)** | Parkes error grid and the prediction trace — the paper's Figs. 9 and 10 | §9.3 |
+| 13 | Results (3/4) | The five-feature-set ablation | §9.6 |
+| 14 | **Results (4/4)** | The degeneracy derivation, the weight table, the empirical confirmation | §9.4 |
+| 15 | Future work | Reframe to classification; personalisation; ResNet branch; test the diagnostic elsewhere | [Part 10](#part-10--answering-hard-questions) |
+| 16 | Expected Outputs | Five outcomes, including the reusable degeneracy diagnostic | §9.7 |
+| 17 | References | IEEE style | — |
+| 18 | Thank You | — | — |
+
+**The four slides in bold carry the argument.** If time is cut, protect 8, 11, 12 and 14.
+
+### Which equations appear where
+
+| Slide | Equations shown |
+|---|---|
+| 8 | `g(A∪B) = g(A)+g(B)+λg(A)g(B)`; `1+λ = ∏(1+λgᵢ)`; the Choquet integral |
+| 10 | Hjorth mobility and complexity; Shannon entropy; correlation dimension; `QTc = QT/√RR`; RMSSD; the paper's eq. (5) (RFE) and eq. (6) (Lasso) |
+| 11 | RMSE, MARD, R² |
+| 14 | `g(Aⱼ)` closed form; `wⱼ = g·β^(j−1)`; the sum-to-one check; the `g→0 ⟹ min` limit |
+
+They are rendered as images from `deck/equations.py`, which uses LaTeX-style markup, so
+they read like the equations in the source paper rather than like typed text.
+
+### How the deck is built
+
+```bash
+python deck/equations.py     # render the equation images
+python deck/pack.py deck_tpl nsut_deck.pptx    # repack the template skeleton
+python deck/fill_nsut.py     # fill all 18 slides and attach speaker notes
+```
+
+The department's template carries its branding as a picture pasted on **every slide**,
+not on the layout — so a slide created fresh from a layout comes out unbranded. The
+skeleton in `deck_tpl/` was therefore made by *duplicating* an existing content slide
+eight times, which copies the picture with it.
+
+---
+
+# Part 12 — Glossary
 
 | Term | Meaning |
 |---|---|
