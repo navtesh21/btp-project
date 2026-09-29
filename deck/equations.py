@@ -20,8 +20,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# 'stix' is a Times-compatible math font, so equations match the body text.
+matplotlib.rcParams['mathtext.fontset'] = 'stix'
+matplotlib.rcParams['font.family'] = 'STIXGeneral'
+
 OUT = os.path.join("figures", "equations")
-INK = "#0B2F3A"
+# Black, to match the reference deck's monochrome Times New Roman styling.
+INK = "#000000"
 
 # name -> (latex, fontsize). Transparent background, tight bounds.
 EQUATIONS = {

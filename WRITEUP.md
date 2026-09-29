@@ -2,7 +2,11 @@
 
 ### A complete explanation of this project, assuming you know nothing about it
 
-**B.Tech Final Year Project — Navtesh Maken**
+**B.Tech Final Year Project, Department of Instrumentation and Control Engineering, NSUT**
+
+Vednash Singhal (2023UIC3633) · Navtesh Maken (2023UIC3641) · Aditya Agarwaal (2023UIC4138) · Tushar Sharma (2023UIC3600)
+
+*Under the supervision of Mrs. Asha Rani*
 
 ---
 
@@ -82,7 +86,7 @@ travels in your blood, and is delivered to every cell in your body.
 **"Blood glucose"** means: *how much glucose is currently in your blood.*
 
 We measure it in **millimoles per litre**, written **mmol/L**. You do not need to know
-what a millimole is. Treat "mmol/L" the same way you treat "km/h" — just the unit the
+what a millimole is. Treat "mmol/L" the same way you treat "km/h", just the unit the
 number comes in.
 
 | Blood glucose | What it means |
@@ -96,7 +100,7 @@ Both matter, for different reasons.
 
 ## 2.2 Insulin and diabetes
 
-**Insulin** is a hormone — a chemical messenger. Its job is to unlock cells so glucose can
+**Insulin** is a hormone, a chemical messenger. Its job is to unlock cells so glucose can
 get in. No insulin means glucose stays stuck in the blood, piling up.
 
 **Type 1 diabetes** is when the body stops producing insulin almost entirely. The immune
@@ -119,7 +123,7 @@ drop of blood goes onto a test strip. A meter reads it. Accurate, but painful, a
 
 **Continuous glucose monitor (CGM).** A patch worn on the skin with a tiny filament
 sitting just underneath. It reports a glucose value **every 5 minutes**, automatically.
-Much better — but still invasive, the sensor must be replaced every 10–14 days, and it is
+Much better, but still invasive, the sensor must be replaced every 10–14 days, and it is
 expensive.
 
 In this project, **the CGM is our source of truth**. It tells us what the glucose actually
@@ -183,8 +187,8 @@ and you get a signal that rises and falls once per heartbeat.
 
 **This is exactly what the green flashing light on a smartwatch is doing.**
 
-The *shape* of each pulse — how fast it rises, how it falls, whether you can see a small
-secondary bump from blood reflecting off the body — depends on how stiff or relaxed the
+The *shape* of each pulse, how fast it rises, how it falls, whether you can see a small
+secondary bump from blood reflecting off the body, depends on how stiff or relaxed the
 blood vessels are.
 
 ## 2.7 Why the heart would know anything about blood sugar
@@ -261,7 +265,7 @@ Then you give it a **new** heart signal it has never seen, and it produces a num
 ## 3.3 The single most important idea: train and test must be separate
 
 Imagine a student who memorises the answers to a practice exam. They score 100%. Have
-they learned anything? You cannot tell — until you give them **different questions**.
+they learned anything? You cannot tell until you give them **different questions**.
 
 Machine learning has exactly this problem. A model can **memorise** its training examples
 and look perfect, while having learned nothing general.
@@ -292,7 +296,7 @@ questions:
 ```
 
 One tree alone is weak and easily fooled by noise. So all three of our models build
-**many** trees and combine them — differently:
+**many** trees and combine them in different ways:
 
 | Model | How it works |
 |---|---|
@@ -302,7 +306,7 @@ One tree alone is weak and easily fooled by noise. So all three of our models bu
 
 Random Forest and Bagging reduce **variance** (over-reacting to noise). Gradient Boosting
 reduces **bias** (systematically missing). Using all three and combining them is the
-paper's bet — their strengths cover each other's weaknesses.
+paper's bet: their strengths cover each other's weaknesses.
 
 **How to combine their three answers is what the Choquet integral does.** That is Part 8.
 
@@ -461,7 +465,7 @@ A **filter** is a mathematical operation that removes unwanted frequencies. We k
 
 **PPG needs a different range.** It is sampled at only 64 Hz, and there is a hard rule
 (the *Nyquist limit*) that you can only represent frequencies up to **half** your sampling
-rate — so 32 Hz maximum. A 40 Hz cutoff is not even expressible. We use **0.5–8 Hz**,
+rate, so 32 Hz maximum. A 40 Hz cutoff is not even expressible. We use **0.5–8 Hz**,
 which keeps the pulse and its first few harmonics.
 
 ## 6.3 Problem: the two devices disagree about what time it is
@@ -476,7 +480,7 @@ Texas in June is 5 hours behind UTC.
 
 **If you assume they agree, every PPG measurement gets paired with a glucose reading from
 five hours earlier.** Nothing crashes. The features compute. The models train. The results
-look completely normal — and are meaningless.
+look completely normal, and are meaningless.
 
 **How we solved it.** Both devices were switched on by hand at roughly the same moments.
 So the correct time offset is the one that makes their start times line up. We tested
@@ -504,7 +508,7 @@ went back an hour on **6 November** — in the middle of their recording.
 
 **There is no single correct offset for this person.**
 
-Our checker scored UTC−6 at 9 sessions and UTC−5 at 6 — no clear winner — and **stopped
+Our checker scored UTC−6 at 9 sessions and UTC−5 at 6, no clear winner, and **stopped
 the program** rather than guessing. Had it guessed the winner, 7 sessions would have been
 silently mismatched by an hour.
 
@@ -598,8 +602,8 @@ Skewness  =  average of  (x − μ)³  divided by  σ³
 Kurtosis  =  average of  (x − μ)⁴  divided by  σ⁴
 ```
 
-The cube keeps the sign — so skewness tells you which *direction* the signal leans. The
-fourth power makes everything positive and hugely amplifies extreme values — so kurtosis
+The cube keeps the sign, so skewness tells you which *direction* the signal leans. The
+fourth power makes everything positive and hugely amplifies extreme values, so kurtosis
 detects rare big spikes.
 
 **Hjorth parameters (our SM and SC).** Let `x′` be how fast the signal is changing (its
@@ -626,7 +630,7 @@ all of information theory.
 
 **Correlation dimension.** Take the signal and plot it against delayed copies of itself in
 `m`-dimensional space. Count what fraction of point-pairs lie within distance `r` of each
-other — call it `C(r)`. Then:
+other; call it `C(r)`. Then:
 
 ```
 CD  =  the slope of  log C(r)  plotted against  log r,  as r shrinks
@@ -736,11 +740,11 @@ Bagging           : 5.0
 
 **What single number should we report?**
 
-**Option 1 — the plain average.** `(9 + 7 + 5) / 3 = 7.0`
+**Option 1: the plain average.** `(9 + 7 + 5) / 3 = 7.0`
 
 Simple, but it assumes all three models are equally good and completely independent.
 
-**Option 2 — a weighted average.** Give better models more say:
+**Option 2: a weighted average.** Give better models more say:
 
 ```
 0.5 × 9  +  0.3 × 7  +  0.2 × 5  =  7.6
@@ -795,7 +799,7 @@ it's 1,024. You cannot choose them all by hand.
 ## 8.4 The Sugeno λ-measure
 
 The Sugeno λ-measure solves this. You supply just **one number per model** — called its
-**density**, `gᵢ`, meaning "how good is this model on its own" — and a formula generates
+**density**, `gᵢ`, meaning "how good is this model on its own", and a formula generates
 all the rest:
 
 ```
@@ -805,7 +809,7 @@ g(A ∪ B)  =  g(A) + g(B) + λ · g(A) · g(B)
 Read that as: *the importance of two groups combined equals the sum of their individual
 importances, plus a correction term.*
 
-**λ (lambda) is that correction.** It is not chosen freely — it is forced by the rule that
+**λ (lambda) is that correction.** It is not chosen freely: it is forced by the rule that
 everything together must equal 1:
 
 ```
@@ -836,7 +840,7 @@ h(2) = 7.0
 h(3) = 5.0     (the smallest)
 ```
 
-**Step 2 — walk down the sorted list, and weight each prediction by how much the group
+**Step 2: walk down the sorted list, and weight each prediction by how much the group
 importance grew when it was added:**
 
 ```
@@ -859,7 +863,7 @@ predictions  = ( 9.0,  7.0,  5.0)
 λ = 1.2289
 ```
 
-(Densities sum to 0.75, which is less than 1, so λ is positive — a synergy bonus, as
+(Densities sum to 0.75, which is less than 1, so λ is positive, a synergy bonus, as
 Part 8.4 said.)
 
 **Now build the cumulative group importances:**
@@ -987,7 +991,7 @@ different ways to arrange that**, and they answer different questions.
 
 **Protocol 1 is what most published work reports.** And here is the problem with it:
 consecutive windows from the same person are extremely similar. The model can learn to
-*recognise the person* and recall their typical glucose — which is not at all the same as
+*recognise the person* and recall their typical glucose, which is not at all the same as
 learning about glucose.
 
 ### The results
@@ -1004,7 +1008,7 @@ learning about glucose.
 **Same data. Same code. Same models. Only the split changed.**
 
 Under the random split, the model genuinely learns something (R² = +0.149). Under either
-honest split, **every method — including the fusion — is worse than a model that ignores
+honest split, **every method, including the fusion, is worse than a model that ignores
 the patient and guesses the average.**
 
 > ### An honest note about the ordering
@@ -1034,8 +1038,8 @@ Under the subject-aware split:
 | Gradient Boosting | −0.243 | 88.5% |
 | **No-skill baseline** | **−0.074** | **90.0%** |
 
-**Read that last row again.** The baseline — which predicts a constant and explains
-literally zero variance — has **both the best R² and the best clinical score of anything
+**Read that last row again.** The baseline, which predicts a constant and explains
+literally zero variance, has **both the best R² and the best clinical score of anything
 tested.**
 
 Someone shown only the Zone A+B column sees 88–90% across the board and concludes the
@@ -1133,7 +1137,7 @@ checked:
 
 **(a) A programming bug.** Our first runs called `cross_val_predict(model, X, y, cv=3)`
 passing the number 3. The library turns a bare number into a splitter that takes
-**consecutive blocks** of rows. Our table is sorted by person — so each "fold" was a block
+**consecutive blocks** of rows. Our table is sorted by person, so each "fold" was a block
 of whole people, and the density was accidentally measuring cross-person generalisation
 instead of ordinary skill. That is near zero, so every density hit the floor.
 
@@ -1142,7 +1146,7 @@ Fixed by passing a proper shuffled splitter. The out-of-fold R² went from **−
 0.04–0.07, Bagging 0.10–0.12. The integral then correctly gave the weakest model about
 half the weight of the others.
 
-**(b) A genuine symptom — and this is the deeper point.** Under the honest subject-aware
+**(b) A genuine symptom, and this is the deeper point.** Under the honest subject-aware
 protocol, with the *correct* splitter, the out-of-fold scores were genuinely negative:
 
 ```
@@ -1189,14 +1193,14 @@ which is the control proving the cause was the slope fit and nothing else we cha
 one always returns it.
 
 **Why this matters:** any result computed from these features was **irreproducible**.
-Nobody re-running the pipeline — including us — would get the same numbers twice. We only
+Nobody re-running the pipeline, including us, would get the same numbers twice. We only
 found it because we tested whether identical input gives identical output, which almost
 nobody does.
 
 ## 9.6 Finding 5 — No feature set works, and fewer features work better
 
 The paper's own ablation showed ECG alone at 1.56, PPG alone at 1.82, and both fused at
-1.49 — fusion best. We ran the same comparison, plus two more, all under
+1.49, fusion best. We ran the same comparison, plus two more, all under
 leave-one-subject-out:
 
 | Feature set | Number of features | R² | RMSE | Zone A+B |
@@ -1218,7 +1222,7 @@ these 193 features that recovers glucose under honest evaluation.
 
 **Second, fusing the two signals is *worse* than the better one alone.** PPG-only
 (−0.075) beats the fused set (−0.097). The paper found the opposite. We do **not** read
-this as "PPG is better than ECG" — a 0.03 gap between two failing configurations is
+this as "PPG is better than ECG", a 0.03 gap between two failing configurations is
 noise, not evidence.
 
 **Third, and most tellingly: fewer features score better.** Look at the ordering.
@@ -1239,10 +1243,10 @@ Now compare the two columns of that table.
 | Worst R² | ECG only, −0.106 | **91.5%** |
 
 **The models with the worst R² carry the highest clinical scores.** The relationship is
-not merely weak — it is *inverted*.
+not merely weak: it is *inverted*.
 
 This is section 9.3 taken to its conclusion. A model that is bad in a particular way —
-predicting a narrow band near the population average — scores *well* on a grid designed to
+predicting a narrow band near the population average, scores *well* on a grid designed to
 catch dangerous errors, precisely because a narrow band near the average is never
 dangerous. It is just useless.
 
@@ -1256,12 +1260,12 @@ dangerous. It is just useless.
 | **4** | A standard library is non-deterministic | Up to 72% of values change between identical runs |
 | **5** | No feature set works, and fewer work better | All five within 0.036 R², all behind the baseline, and Zone A+B *inversely* related to R² |
 
-Plus the two data hazards from Part 6 — mismatched clocks and a daylight-saving
-transition — both caught by checks written to **refuse rather than guess**.
+Plus the two data hazards from Part 6, mismatched clocks and a daylight-saving
+transition, both caught by checks written to **refuse rather than guess**.
 
 **The unifying point:** at five different layers of the same pipeline — the data
 alignment, the feature library, the fusion operator, the evaluation protocol, and the
-reporting metric — this method produced confident, plausible numbers that were wrong,
+reporting metric, this method produced confident, plausible numbers that were wrong,
 while appearing to work perfectly.
 
 ---
@@ -1275,7 +1279,7 @@ Likely questions, with honest answers.
 Possible, and we cannot fully rule it out. But: our morphological features match textbook
 physiology (QTc median 0.405 s against a normal range of 0.35–0.44); our pipeline
 reproduces its own results exactly after the determinism fix; and under the random-split
-protocol — the one the paper uses — our models *do* learn (R² = +0.194). The machinery
+protocol, the one the paper uses, our models *do* learn (R² = +0.194). The machinery
 works. It is the honest evaluation it does not survive.
 
 **"Isn't 10 people too few?"**
@@ -1289,7 +1293,7 @@ negative R².
 
 It is the most substantial difference, and we flag it prominently. Two things soften it:
 our hand-crafted features measure exactly the quantities the biology predicts, and the
-*wavelet* features — which we reproduced exactly as specified — perform the same as
+*wavelet* features, which we reproduced exactly as specified, perform the same as
 everything else (−0.102). The failure is not localised to the part we changed.
 
 **"Why is your accuracy so much worse than the paper's?"**
@@ -1321,14 +1325,19 @@ answer.
 
 # Part 11 — The presentation, slide by slide
 
-The deck `nsut_deck.pptx` follows the department's prescribed Mid-Term-Review structure.
+There are two decks. `nsut_deck.pptx` has 18 slides and follows the department's
+prescribed Mid-Term-Review structure, keeping the NSUT logo. `deck/btp_midterm_review.pptx`
+has 16 and matches the reference submission's style: Times New Roman, monochrome,
+numbered sections, no logo. The table below is numbered against the 18-slide deck;
+`PRESENTATION_GUIDE.md` maps the two.
+
 This section says what each slide contains, which part of this document it comes from,
-and what the slide is actually *for*. A fuller narration — what to say out loud, where to
-pause — is in `PRESENTATION_GUIDE.md`.
+and what the slide is actually *for*. A fuller narration, what to say out loud, where to
+pause, is in `PRESENTATION_GUIDE.md`.
 
 | # | Slide | Content | Source |
 |---|---|---|---|
-| 1 | Title | Project title, name, roll number | — |
+| 1 | Title | Project title, the four names and roll numbers, supervisor | — |
 | 2 | Contents | The prescribed section list | — |
 | 3 | Introduction | Why glucose matters, why measuring it hurts, the ECG mechanism, and the classification-vs-regression caveat | [Part 1](#part-1--what-this-project-was-trying-to-do), [Part 2](#part-2--the-words-you-need) |
 | 4 | Literature Survey (1/2) | The paper under test, and its own comparison against four prior methods | [Part 4](#part-4--the-paper-we-copied) |
@@ -1364,13 +1373,14 @@ they read like the equations in the source paper rather than like typed text.
 ### How the deck is built
 
 ```bash
-python deck/equations.py     # render the equation images
-python deck/pack.py deck_tpl nsut_deck.pptx    # repack the template skeleton
-python deck/fill_nsut.py     # fill all 18 slides and attach speaker notes
+python deck/equations.py                      # render the 11 equation images
+node   deck/make_ref_deck.js                  # -> deck/btp_midterm_review.pptx
+python deck/pack.py deck_tpl nsut_deck.pptx   # repack the template skeleton
+python deck/fill_nsut.py                      # -> nsut_deck.pptx, with speaker notes
 ```
 
 The department's template carries its branding as a picture pasted on **every slide**,
-not on the layout — so a slide created fresh from a layout comes out unbranded. The
+not on the layout, so a slide created fresh from a layout comes out unbranded. The
 skeleton in `deck_tpl/` was therefore made by *duplicating* an existing content slide
 eight times, which copies the picture with it.
 

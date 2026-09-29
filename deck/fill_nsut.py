@@ -46,13 +46,84 @@ RED = RGBColor(0xC6, 0x28, 0x28)
 MUTED = RGBColor(0x5A, 0x6B, 0x72)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
-STUDENT = "NAVTESH MAKEN"
-ROLL = "<ROLL NO.>"          # fill in before submitting
+TEAM = [
+    ("2023UIC3633", "VEDNASH SINGHAL"),
+    ("2023UIC3641", "NAVTESH MAKEN"),
+    ("2023UIC4138", "ADITYA AGARWAAL"),
+    ("2023UIC3600", "TUSHAR SHARMA"),
+]
+SUPERVISOR = "Mrs. Asha Rani"
 
 
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+def set_cell(cell, text):
+    """Write text into a cell's first run so the template formatting survives."""
+    paras = cell.text_frame.paragraphs
+    if paras and paras[0].runs:
+        paras[0].runs[0].text = text
+        for run in paras[0].runs[1:]:
+            run.text = ""
+    else:
+        cell.text_frame.text = text
+    for p in paras[1:]:
+        for run in p.runs:
+            run.text = ""
+
+
+def fill_team_table(t):
+    """One (roll, name) pair per row; blank any rows the template leaves spare."""
+    for r in range(len(t.rows)):
+        member = TEAM[r] if r < len(TEAM) else ("", "")
+        for c in range(len(t.columns)):
+            set_cell(t.cell(r, c), member[c] if c < len(member) else "")
+
+
+def add_supervisor(slide):
+    """The department template has no supervisor line, so prepend one to the
+    subtitle and lift the box clear of the slide edge."""
+    # The template sizes the team table to run right down to the subtitle, so it
+    # has to come up before a supervisor line will fit underneath.
+    for sh in slide.shapes:
+        if sh.has_table:
+            sh.top = Inches(4.62)
+            sh.height = Inches(1.6)
+            for row in sh.table.rows:
+                row.height = Inches(0.4)
+    for sh in slide.shapes:
+        if sh.name.startswith("Subtitle"):
+            sh.top = Inches(6.34)
+            sh.height = Inches(1.1)
+            tf = sh.text_frame
+            # fill_nsut.py rewrites its own output, so this must not stack up a
+            # second supervisor line when the script is run again.
+            if tf.paragraphs[0].text.startswith("Under the supervision of"):
+                tf.paragraphs[0].runs[0].text = (
+                    f"Under the supervision of {SUPERVISOR}")
+                return
+            first = tf.paragraphs[0]
+            first._p.addprevious(copy.deepcopy(first._p))
+            tf.paragraphs[0].runs[0].text = (
+                f"Under the supervision of {SUPERVISOR}")
+            return
+    raise RuntimeError("no Subtitle placeholder on the title slide")
+
+
+def drop_boilerplate(slide):
+    """Remove the template's italic instruction prose, which is not ours to show."""
+    dropped = []
+    for sh in list(slide.shapes):
+        if not sh.has_text_frame:
+            continue
+        tf = sh.text_frame
+        italic = any(r.font.italic for para in tf.paragraphs for r in para.runs)
+        if italic and "You may also include" in tf.text:
+            sh._element.getparent().remove(sh._element)
+            dropped.append(sh.name)
+    return dropped
+
+
 def title_of(slide):
     for sh in slide.shapes:
         if sh.name.startswith("Title"):
@@ -221,14 +292,8 @@ def build():
     for sh in s.shapes:
         if sh.has_table:
             t = sh.table
-            t.cell(0, 0).text_frame.paragraphs[0].runs[0].text = ROLL
-            t.cell(0, 1).text_frame.paragraphs[0].runs[0].text = STUDENT
-            for r in range(1, len(t.rows)):
-                for c in range(len(t.columns)):
-                    cell = t.cell(r, c)
-                    for p in cell.text_frame.paragraphs:
-                        for run in p.runs:
-                            run.text = ""
+            fill_team_table(t)
+    add_supervisor(s)
     notes(s, "30s. Name the paper and say plainly that this is a reproduction: we "
              "rebuilt a published method and tested whether its result survives on "
              "data the original authors never saw.")
@@ -703,14 +768,12 @@ def build():
     for sh in s.shapes:
         if sh.has_table:
             t = sh.table
-            t.cell(0, 0).text_frame.paragraphs[0].runs[0].text = ROLL
-            t.cell(0, 1).text_frame.paragraphs[0].runs[0].text = STUDENT
-            for r in range(1, len(t.rows)):
-                for c in range(len(t.columns)):
-                    for p in t.cell(r, c).text_frame.paragraphs:
-                        for run in p.runs:
-                            run.text = ""
+            fill_team_table(t)
     notes(s, "Leave this up, or return to Results (4) for questions.")
+
+    removed = [(i, n) for i, sl in enumerate(S, 1) for n in drop_boilerplate(sl)]
+    for i, n in removed:
+        print(f"  dropped template boilerplate on slide {i} ({n})")
 
     prs.save(DECK)
     print(f"filled {len(S)} slides -> {DECK}")

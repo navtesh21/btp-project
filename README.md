@@ -14,8 +14,8 @@ we built, what we found, and what we cannot claim. Written from zero: every tech
 is explained the first time it appears, assuming no background in medicine, machine
 learning or mathematics beyond school algebra.
 
-**🎤 [Presentation guide →](PRESENTATION_GUIDE.md)** — what to say on each of the 16
-slides, what to point at, the questions you will be asked, and the answers.
+**🎤 [Presentation guide →](PRESENTATION_GUIDE.md)** — what to say on every
+slide of either deck, what to point at, the questions you will be asked, and the answers.
 
 ---
 
@@ -51,7 +51,7 @@ w_j = g · β^(j−1),    β = 1 + λg,    j = 1 is the LARGEST prediction
 ```
 
 Since `Σ gᵢ < 1 ⟹ λ > 0 ⟹ β > 1`, weight piles onto the **smallest** prediction. At the
-observed floor `g = 0.01`, **89.5%** of the weight lands on the minimum — so the
+observed floor `g = 0.01`, **89.5%** of the weight lands on the minimum, so the
 "multimodel fusion" was returning `min(m1, m2, m3)`.
 
 The *symmetric measure ⟹ OWA* equivalence is standard aggregation theory (Grabisch;
@@ -76,12 +76,12 @@ Fused feature set (all 193), 30,830 windows, 10 patients.
 | Baseline RMSE (mmol/L) | 2.520 | 2.610 | 2.564 |
 | **Beats the baseline?** | **yes** | **no** | **no** |
 
-Under **either** honest split, every method — including the fusion — falls behind a model
+Under **either** honest split, every method, including the fusion, falls behind a model
 that predicts a constant.
 
 *(Leave-one-subject-out is not worse than subject-aware despite being stricter: it trains
 on 9 of 10 patients per fold rather than 4 of 5, so it has more data. The baseline moves
-the same way. The claim is not that results degrade monotonically with strictness — it is
+the same way. The claim is not that results degrade monotonically with strictness: it is
 that both honest protocols put every method behind the baseline.)*
 
 ### The ablation: every feature set, leave-one-subject-out
@@ -104,7 +104,7 @@ Three things: **every** set is behind the baseline; **fewer features score bette
 ![Parkes error grid](figures/results/fig10_parkes_subject_aware.png)
 
 The predictions form a **horizontal band** around 6–9 mmol/L regardless of whether the
-true value was 4 or 20. That is what "no better than the average" looks like — and it
+true value was 4 or 20. That is what "no better than the average" looks like, and it
 still lands 89.4% inside the clinically acceptable zones, which is precisely why the zone
 metric cannot certify a model on its own.
 
@@ -122,7 +122,7 @@ metric cannot certify a model on its own.
 | `bgfusion/stage3_fusion.py` | The three models, densities, `degeneracy_report` |
 | `bgfusion/evaluate.py` | Three split protocols, two controls, grading |
 | `bgfusion/error_grid.py` | Parkes error grid zones |
-| `deck/` | Generator for `BTP_presentation.pptx` |
+| `deck/` | Deck generators. `make_ref_deck.js` builds the 16-slide `deck/btp_midterm_review.pptx`; `fill_nsut.py` builds the 18-slide `nsut_deck.pptx` |
 | `legacy_d1namo/` | An earlier ECG-only study on D1NAMO (archived) |
 
 Three things deliberately built to **fail loudly rather than guess**:
@@ -153,7 +153,7 @@ node deck/main12.js
 ```
 
 **Performance note.** Always launch extraction through `run_stage1.py`. It pins BLAS to
-one thread per worker *before* numpy is imported — without that, each joblib worker spawns
+one thread per worker *before* numpy is imported; without that, each joblib worker spawns
 its own full-size thread pool and the run goes **slower than single-threaded** (measured:
 5.16 s/window unpinned vs 1.22 s/window pinned, a 4.2× difference).
 
@@ -166,7 +166,7 @@ Not included in this repository (8.6 GB). Download from figshare record **281362
 > *PhysioCGM: a multimodal physiological dataset for non-invasive blood glucose
 > estimation.* Scientific Data, 2025. **CC0** (public domain).
 
-The IEEE paper itself is **not** redistributed here — it is copyrighted. Obtain it from
+The IEEE paper itself is **not** redistributed here: it is copyrighted. Obtain it from
 IEEE Xplore.
 
 ---
@@ -182,4 +182,8 @@ IEEE Xplore.
 
 ---
 
-*B.Tech Final Year Project — Navtesh Maken*
+**B.Tech Final Year Project, Department of Instrumentation and Control Engineering, NSUT**
+
+Vednash Singhal (2023UIC3633) · Navtesh Maken (2023UIC3641) · Aditya Agarwaal (2023UIC4138) · Tushar Sharma (2023UIC3600)
+
+*Under the supervision of Mrs. Asha Rani*

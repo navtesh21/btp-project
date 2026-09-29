@@ -2,12 +2,18 @@
 
 ### What to say on every slide, and what you will be asked
 
-**Deck:** `nsut_deck.pptx` — 18 slides, built on the department's Mid-Term-Review
-template. Speaker notes are attached to each slide and show in presenter view.
-**Companion:** [`WRITEUP.md`](WRITEUP.md) — the full explanation of everything.
+**Two decks are provided, and either may be presented.**
 
-*(An earlier free-form 17-slide version is kept as `BTP_presentation.pptx`. The NSUT
-deck is the one to present, because it follows the prescribed section structure.)*
+| File | Slides | Style |
+|---|---|---|
+| `deck/btp_midterm_review.pptx` | 16 | Times New Roman throughout, monochrome, numbered sections. Matches the reference submission the department circulated. No institutional logo, because the reference carries none. |
+| `nsut_deck.pptx` | 18 | Built on the department's own Mid-Term-Review template, so it keeps the NSUT logo on every slide. Speaker notes are attached and show in presenter view. |
+
+The script below is numbered against `nsut_deck.pptx`. The 16-slide deck carries the
+same argument in the same order; its section numbers are mapped in the table at the
+end of this guide.
+
+**Companion:** [`WRITEUP.md`](WRITEUP.md), the full explanation of everything.
 
 ---
 
@@ -15,8 +21,9 @@ deck is the one to present, because it follows the prescribed section structure.
 
 **Total time:** about 18 minutes at a comfortable pace, plus questions.
 
-**Fill in your roll number.** `deck/fill_nsut.py` has `ROLL = "<ROLL NO.>"` near the top —
-set it and rebuild, or just edit the two table cells on slides 1 and 18 in PowerPoint.
+**Names and roll numbers are already set** in both decks, along with the supervisor
+line. They live in `TEAM` and `SUPERVISOR` in `deck/fill_nsut.py`, and in `titleSlide()`
+in `deck/build_ref_style.js`. Change them in those two places and rebuild.
 
 **The one sentence you must land.** If the audience remembers nothing else:
 
@@ -26,7 +33,7 @@ set it and rebuild, or just edit the two table cells on slides 1 and 18 in Power
 
 **Four slides carry the argument: 8, 11, 12 and 14.** Slide 12 (the Parkes grid and the
 prediction trace) is the strongest single slide in the deck. If you are running out of
-time, cut slides 7 and 10 — never 12.
+time, cut slides 7 and 10, never 12.
 
 **A note on tone.** This is a negative result, and that is fine. Do not apologise for it.
 A reproduction that finds where a method breaks is worth more than one that repeats a
@@ -84,16 +91,16 @@ Say **"this is a reproduction"** in the first sentence. It frames everything.
 no insulin, so it builds up. Below 3.9 you get seizure and coma within minutes; above 10
 you get nerve, eye and kidney damage over years.
 
-Measuring it today means breaking the skin — a finger-prick four to ten times daily, or a
+Measuring it today means breaking the skin, a finger-prick four to ten times daily, or a
 sensor filament replaced every fortnight. About 590 million adults live this way.
 
 Now, why would the heart know? Low glucose releases adrenaline, which drives potassium
-into cells. Potassium is what heart muscle uses to reset after each beat — so the ECG's QT
+into cells. Potassium is what heart muscle uses to reset after each beat, so the ECG's QT
 interval lengthens. High glucose alters ST and T-wave shape by a different route."
 
 **Then the caveat, which sets up the whole result:**
 
-"But note what that mechanism supports. It explains *detecting* a dangerous event — a
+"But note what that mechanism supports. It explains *detecting* a dangerous event, a
 yes/no question, which we call classification. It does not promise you can read the exact
 number, which is regression and much harder. Published classification reaches 84 to 94
 percent. Regression doesn't replicate. This project attempted the number."
@@ -117,7 +124,7 @@ reproducing."
 
 No independent validation, because the data is private.
 
-The evaluation protocol isn't controlled — results come from a random window-level split,
+The evaluation protocol isn't controlled: results come from a random window-level split,
 where the same participant appears in both training and test. Windows from one person are
 highly correlated, so a model can identify the *person* rather than learn about glucose.
 
@@ -136,7 +143,7 @@ And the feature pipeline's determinism was never verified."
 **1:15** · "The aim, stated as a question: does the reported accuracy survive independent
 reproduction under leakage-controlled evaluation?
 
-Five objectives — rebuild all three stages; run on open data; evaluate under three
+Five objectives: rebuild all three stages; run on open data; evaluate under three
 progressively stricter protocols with a baseline beside every number; audit the fusion
 operator itself; and verify the pipeline is deterministic."
 
@@ -172,7 +179,7 @@ showing it happens *by accident* in practice."
 **2:00** · The densest slide. **Open with the analogy, before any symbol.**
 
 "Three doctors give three opinions. You could average them. But two trained together and
-almost always agree — averaging counts that shared training twice. And the third has
+almost always agree, averaging counts that shared training twice. And the third has
 thirty years more experience, so should count for more.
 
 A weighted average handles the second. It physically cannot handle the first, because it
@@ -184,7 +191,7 @@ only assigns importance to doctors *individually*."
 first equation is the Sugeno rule: two groups combined equal the sum of their importances
 plus a correction, lambda times their product.
 
-Lambda isn't free — it's forced by requiring that all models together equal one. That's
+Lambda isn't free: it's forced by requiring that all models together equal one. That's
 the second equation.
 
 And the third is the integral itself: sort the predictions largest first, then weight each
@@ -203,7 +210,7 @@ band-pass filtered — 0.5 to 40 hertz for ECG, 0.5 to 8 for PPG, because PPG is
 64 hertz so it can only represent up to 32.
 
 Level two: a db4 wavelet to seven levels gives eight sub-signals per modality, ten
-features each — that's the paper's 160 — plus 33 shape features.
+features each, that's the paper's 160, plus 33 shape features.
 
 Level three: three models, combined by the Choquet integral.
 
@@ -212,7 +219,7 @@ both signals against a CGM reference."
 
 **Slow down on the last row of the right-hand table:**
 
-"The most important number here is 2.519. That's the standard deviation of glucose — and
+"The most important number here is 2.519. That's the standard deviation of glucose, and
 therefore the error of a model that ignores the signal and always predicts the average.
 It's the score for learning *nothing*. Every result after this is measured against it."
 
@@ -233,7 +240,7 @@ The morphological ones, measured directly rather than learned, because we alread
 which shapes matter. Corrected QT removes the dependence on heart rate.
 
 And selection: equations five and six are the paper's own numbering, so you can follow in
-the PDF. A feature is kept only if all three criteria agree — and selection runs *inside*
+the PDF. A feature is kept only if all three criteria agree, and selection runs *inside*
 each fold, because selecting on the whole dataset leaks test information into the feature
 choice."
 
@@ -248,7 +255,7 @@ good as predicting the average. Negative means *worse* than predicting the avera
 the only metric here that exposes a model which has learned nothing — RMSE and the
 clinical scores still look respectable.
 
-Now the table. Under the random split — the paper's protocol — the fusion scores plus
+Now the table. Under the random split, the paper's protocol, the fusion scores plus
 0.149 against a baseline of zero. It genuinely learns.
 
 Under subject-aware splitting: minus 0.223, against a baseline of minus 0.074.
@@ -261,7 +268,7 @@ including the fusion, is behind the baseline."
 **Raise the ordering yourself — do not wait to be asked:**
 
 "You'll notice leave-one-out is *better* than subject-aware, even though it's stricter.
-That's because it trains on nine of ten people rather than four of five — more data. The
+That's because it trains on nine of ten people rather than four of five, more data. The
 baseline moves the same way. So I'm not claiming monotonic degradation. I'm claiming the
 narrower thing: under either honest split, everything falls behind the baseline."
 
@@ -273,7 +280,7 @@ narrower thing: under either honest split, everything falls behind the baseline.
 
 **[trace the diagonal on the left figure]**
 
-"This is the paper's Figure 10 — the Parkes error grid. True glucose across, predicted up.
+"This is the paper's Figure 10, the Parkes error grid. True glucose across, predicted up.
 A working model produces a cloud along this diagonal."
 
 **[trace the horizontal band]**
@@ -283,7 +290,7 @@ roughly 6 to 9."
 
 **[point to the right figure]**
 
-"And here's the same thing over time — the paper's Figure 9. Red is the real glucose from
+"And here's the same thing over time, the paper's Figure 9. Red is the real glucose from
 the CGM, swinging between 3 and 16 across seventeen days. Blue is our prediction: a flat
 line at about 7.
 
@@ -302,7 +309,7 @@ in zones A and B. By the headline clinical metric, this looks like a working dev
 
 **1:15** · "Every feature set, under the strictest protocol.
 
-Every one is behind the baseline — the whole spread is 0.036 in R-squared.
+Every one is behind the baseline: the whole spread is 0.036 in R-squared.
 
 Fusing the two signals is *worse* than the better one alone: PPG by itself beats the fused
 set. The paper found the opposite. I don't read a 0.03 gap between two failing
@@ -312,7 +319,7 @@ Two things worth noticing. Fewer features score better — 33 beats 193. When ad
 information makes a model worse, it's fitting noise.
 
 And the clinical score runs backwards. The models with the *worst* R-squared carry the
-*highest* Zone A+B. Not weakly related — inverted."
+*highest* Zone A+B. Not weakly related, inverted."
 
 ---
 
@@ -338,7 +345,7 @@ method's distinguishing component was returning min of the three models."
 **Do not skip the last line:**
 
 "And it's not only a bug. Under honest evaluation the models genuinely can't generalise,
-so the densities floor legitimately — the fusion degenerates exactly when you most need it
+so the densities floor legitimately. The fusion degenerates exactly when you most need it
 to help, with no warning at all."
 
 ---
@@ -346,12 +353,12 @@ to help, with no warning at all."
 # Slide 15 — Future work
 
 **1:00** · "Four directions. The most important is reframing from regression to
-classification — the biology supports detecting dangerous lows, not reading exact numbers,
+classification: the biology supports detecting dangerous lows, not reading exact numbers,
 and published ECG classification reaches 84 to 94 percent.
 
 Then personalisation, since the gap between protocols shows the models lean on
 person-specific structure. Implementing the ResNet branch properly, given GPU access. And
-testing the degeneracy diagnostic on other fusion pipelines — the failure mode isn't
+testing the degeneracy diagnostic on other fusion pipelines: the failure mode isn't
 specific to glucose."
 
 ---
@@ -360,7 +367,7 @@ specific to glucose."
 
 **1:15** · "Five outcomes.
 
-An open, reproducible implementation — everything is public.
+An open, reproducible implementation: everything is public.
 
 A degeneracy theorem with a runnable diagnostic. This one is reusable by anyone using
 fuzzy-integral fusion, in any domain at all.
@@ -370,7 +377,7 @@ metrics can't certify a model without a baseline.
 
 A reproducibility defect reported in a widely-used library.
 
-And three guards that fail loudly rather than guess — a timezone detector that refuses
+And three guards that fail loudly rather than guess, a timezone detector that refuses
 when ambiguous, feature selection with no whole-dataset variant, and a per-fold degeneracy
 report."
 
@@ -393,9 +400,9 @@ Leave it up, or return to slide 14 for questions.
 **"Did you just implement it wrong?"**
 
 "Possible, and I can't fully rule it out. But three things argue against it. My
-morphological features match textbook physiology — median corrected QT of 0.405 seconds
+morphological features match textbook physiology, median corrected QT of 0.405 seconds
 against a normal range of 0.35 to 0.44. The pipeline reproduces its own results exactly
-after the determinism fix. And under the random-split protocol — the one the paper uses —
+after the determinism fix. And under the random-split protocol, the one the paper uses,
 my models *do* learn, scoring plus 0.194. The machinery works. It's the honest evaluation
 it doesn't survive."
 
@@ -403,21 +410,21 @@ it doesn't survive."
 
 "Agreed, and I say so in the limitations. But PhysioCGM is the largest open dataset with
 all three required signals, and 30,830 windows is more than most published work in this
-area uses. More people would strengthen the conclusion — they wouldn't reverse a negative
+area uses. More people would strengthen the conclusion; they wouldn't reverse a negative
 R-squared."
 
 **"You didn't use their neural network."**
 
 "That's the most substantial difference and I flag it prominently. Two things soften it.
 My hand-crafted features measure exactly the quantities the biology predicts. And the
-wavelet features — which I reproduced exactly as specified — perform the same as
+wavelet features, which I reproduced exactly as specified, perform the same as
 everything else, at minus 0.102. The failure isn't localised to the part I changed."
 
 **"So is noninvasive glucose monitoring impossible?"**
 
 "I'm not claiming that. I'm claiming this method, on this data, under honest evaluation,
-doesn't work — and that four specific mechanisms can make such a method look like it does.
-Detecting *events* — dangerous highs and lows — is a different and more promising problem,
+doesn't work, and that four specific mechanisms can make such a method look like it does.
+Detecting *events*, dangerous highs and lows, is a different and more promising problem,
 well supported by the biology."
 
 **"What would you do next?"**
@@ -428,12 +435,12 @@ of a positive answer."
 
 **"Why is your accuracy so much worse than the paper's?"**
 
-"Different data, and different evaluation. On their protocol — random splitting — I get a
+"Different data, and different evaluation. On their protocol, random splitting, I get a
 positive R-squared. I simply also ran the protocols they didn't."
 
 **"Is a negative result good enough for a final-year project?"**
 
-"The negative result isn't the contribution — the four mechanisms are. A degeneracy
+"The negative result isn't the contribution: the four mechanisms are. A degeneracy
 theorem with a closed-form diagnostic, evidence that split protocol dominates model
 choice, proof that the field's headline clinical metric can't distinguish a real model
 from a constant, and a reproducibility failure in a widely-used library. Any one of those
@@ -478,3 +485,40 @@ The three sentences that carry the whole talk:
 2. "Under an honest train/test split, every method we tested was *worse* than that."
 3. "And the clinical metric everyone reports can't tell the difference, because a constant
    predictor scores the highest of anything we tested."
+
+---
+
+## Slide mapping between the two decks
+
+The script above is numbered against the 18-slide `nsut_deck.pptx`. If you present the
+16-slide `deck/btp_midterm_review.pptx` instead, read the notes under these headings:
+
+| 16-slide deck (section) | 18-slide deck (slide) |
+|---|---|
+| Title | 1 |
+| Contents | 2 |
+| 1. Introduction | 3 |
+| 2. Literature Survey, the method under test | 4 |
+| 3. Literature Survey, evaluation practice | 5 |
+| 4. Research Gaps | 6 |
+| 5. Aim and Objectives | 7 |
+| 6. Problem Formulation, Choquet mathematics | 8 |
+| 7. Methodology I, pipeline and dataset | 9 |
+| 8. Methodology II, features and selection | 10 |
+| 9. Results I, the three protocols | 11 |
+| 10. Results II, Parkes grid and trace | 12 |
+| 11. Results III, ablation | 13 |
+| 12. Results IV, degeneracy | 14 |
+| 13. Future Work | 15, 16 |
+| 14. Conclusion and References | 17, 18 |
+
+The argument, the numbers and the figures are identical. Only the layout differs.
+
+### Rebuilding either deck
+
+```bash
+python deck/equations.py                      # render the 11 equation images
+node   deck/make_ref_deck.js                  # -> deck/btp_midterm_review.pptx
+python deck/pack.py deck_tpl nsut_deck.pptx   # repack the template skeleton
+python deck/fill_nsut.py                      # -> nsut_deck.pptx, with speaker notes
+```

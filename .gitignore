@@ -46,3 +46,11 @@ package-lock.json
 # ---- deck build intermediates ----
 nsut_png/
 deck_tpl/
+
+# ---- PowerPoint render output (regenerate with deck/export_png.ps1) ----
+nsut_render/
+ref_render/
+
+# ---- Pages rendered from the reference submission supplied for styling only.
+# That deck is another team's work; it is not ours to redistribute. ----
+ref_png/
