@@ -350,7 +350,8 @@ module.exports = function build() {
   // ---- 13  RESULTS III ---------------------------------------------------
   {
     const s = section(12, "Results IV — Feature-Set Ablation");
-    subhead(s, "Every feature set evaluated under leave-one-subject-out with Choquet fusion");
+    subhead(s, "Which feature family carries the information? Run under "
+               + "leave-one-subject-out only, for the reason given on the right.");
     table(s, [
       ["Feature set", "Features", "R²", "RMSE (mmol/L)", "Zone A+B (%)"],
       ["No-skill baseline", "0", "−0.035", "2.564", "90.6"],
@@ -362,23 +363,47 @@ module.exports = function build() {
     ], M, 1.75, 7.3, { colW: [2.8, 1.05, 1.0, 1.35, 1.1], rowH: 0.31,
                        size: 10.5, boldRow: 1, align: "center" });
     const obs = [
-      ["Every feature set falls behind the baseline.",
-       "The entire spread, best to worst, is 0.036 in R², and the baseline lies above all of it."],
-      ["Fusing the two signals is worse than the better one alone.",
-       "PPG alone (−0.075) exceeds the fused set (−0.097). The source paper reports the "
-       + "opposite ordering. A 0.03 gap between two failing configurations is not read as evidence."],
-      ["Fewer features perform better.",
-       "33 features exceed 193. When additional information degrades a model, the model is "
-       + "fitting noise rather than signal."],
-      ["The clinical score is inversely related to R².",
-       "The configurations with the poorest R² carry the highest Zone A+B."],
+      ["Why only this protocol, when Section 9 was positive?",
+       "The question here is whether a feature family generalises to a new person. Under "
+       + "a random split every family also gets to exploit the per-participant shortcut, "
+       + "so it would rank them partly on how well each identifies the participant. "
+       + "Holding a person out removes that."],
+      ["What this costs us.",
+       "These rows are therefore not directly comparable to Tables III and IV of the "
+       + "source paper, which are computed under the authors' random split. Running the "
+       + "ablation under that protocol as well is the first item of further work."],
+      ["The spread is small, and nothing separates cleanly.",
+       "Best to worst is 0.036 in R². We do not read PPG (−0.075) as beating the fused "
+       + "set (−0.097) on a gap that size, though the paper reports the opposite ordering."],
+      ["Fewer features score better, and Zone A+B runs backwards.",
+       "33 features beat 193, which is what fitting noise looks like. The weakest sets by "
+       + "R² carry the highest Zone A+B, the same inversion as Section 11."],
     ];
+    // State the coverage plainly rather than leave a reader to infer it from the
+    // subhead. The eight blanks are a time budget, not a result.
+    s.addText("Which configurations were run", {
+      x: M, y: 4.28, w: 7.05, h: 0.3, isTextBox: true, margin: 0,
+      fontFace: FONT, fontSize: 11.5, bold: true, color: BLACK, align: "center" });
+    table(s, [
+      ["Feature set", "Random window", "Subject-aware", "Leave-one-out"],
+      ["Fused (193)", "run", "run", "run"],
+      ["ECG only, PPG only", "not run", "not run", "run"],
+      ["Temporal, morphological", "not run", "not run", "run"],
+    ], M, 4.66, 7.05, { colW: [2.55, 1.5, 1.5, 1.5], rowH: 0.32,
+                        size: 10.5, align: "center" });
+    s.addText("The eight blanks are roughly 2.4 hours of compute, not a finding. "
+              + "They are listed under further work.", {
+      x: M, y: 6.02, w: 7.05, h: 0.34, isTextBox: true, margin: 0,
+      fontFace: FONT, fontSize: 9.5, color: GREY, align: "center", valign: "top" });
+
     obs.forEach(([h, t], i) => {
-      const y = 1.78 + i * 1.02;
-      s.addText(h, { x: 8.4, y, w: 4.2, h: 0.5, isTextBox: true, margin: 0,
-        fontFace: FONT, fontSize: 11, bold: true, color: BLACK });
-      s.addText(t, { x: 8.4, y: y + 0.32, w: 4.2, h: 0.68, isTextBox: true, margin: 0,
-        fontFace: FONT, fontSize: 10, color: BLACK });
+      const y = 1.7 + i * 1.24;
+      // valign must be explicit: these boxes default to middle, which floats a short
+      // note away from the heading it belongs to.
+      s.addText(h, { x: 8.3, y, w: 4.3, h: 0.3, isTextBox: true, margin: 0,
+        fontFace: FONT, fontSize: 10.5, bold: true, color: BLACK, valign: "top" });
+      s.addText(t, { x: 8.3, y: y + 0.28, w: 4.3, h: 0.92, isTextBox: true, margin: 0,
+        fontFace: FONT, fontSize: 9.5, color: BLACK, valign: "top" });
     });
   }
 

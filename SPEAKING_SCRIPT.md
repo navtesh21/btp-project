@@ -226,17 +226,29 @@ Point at the left panel, then the right. The contrast does the work.
 
 ---
 
-## Slide 14 — Results IV, ablation (50 s)
+## Slide 14 — Results IV, ablation (55 s)
 
-> "We ran every feature combination under the strictest protocol. Three things worth
-> noting.
+Raise the protocol question yourself, before anyone asks it. It is the obvious
+objection after slide 11, and answering it first is much stronger than being caught.
+
+> "This asks which feature family actually carries the information. And you'll notice
+> immediately that every number here is negative, where slide 11 was positive. That's
+> because this table is run under leave-one-subject-out only.
 >
-> The whole spread from best to worst is 0.036 in R-squared, which is small. Fewer
-> features score slightly better than more — 33 beats 193 — which usually means the
-> extra features are adding noise rather than signal. And the clinical score runs the
-> opposite way to R-squared, which is the same point as the previous slide.
+> That was deliberate: the question here is whether a feature family works for a *new*
+> person. Under a random split every family also gets the benefit of having seen that
+> person before, so it would partly be ranking them on how well each one identifies the
+> participant rather than predicts glucose. Holding the person out removes that.
 >
-> We're not claiming PPG beats ECG from a 0.03 gap. That's within noise."
+> The honest cost is in the small table below. We ran the fused set under all three
+> protocols, but the four individual feature sets only under leave-one-out. So these
+> rows aren't directly comparable to Tables III and IV of the paper, which are computed
+> under the authors' random split. Those eight remaining runs are about two and a half
+> hours of compute and they're first on our further-work list.
+>
+> On the numbers themselves: the whole spread is 0.036 in R-squared, which is small.
+> We're not claiming PPG beats ECG on a 0.03 gap. And 33 features beat 193, which is
+> usually what fitting noise looks like."
 
 ---
 
@@ -299,6 +311,12 @@ This is your most original contribution. Don't rush it.
 > "Under their protocol, yes, directionally — positive R-squared, fusion ahead on the
 > clinical metric. Our absolute numbers are worse, on a different cohort and without the
 > ResNet. What we add is what happens when you change the split."
+
+**"Why is the ablation only under one protocol?"**
+> "Time. We ran the fused set under all three, and the four individual feature sets
+> under the strictest one only, because that's the one that answers whether a feature
+> family generalises to a new person. The remaining eight runs are about two and a half
+> hours and they're queued."
 
 **"Ten people is very small."**
 > "It is, and we say so. It's the same order as most studies in this area — the review
