@@ -224,58 +224,9 @@ not yet. Those are different products."
 
 Point at the left panel, then the right. The contrast does the work.
 
----
 
-## Slide 14 — Results IV, ablation (55 s)
 
-Raise the protocol question yourself, before anyone asks it. It is the obvious
-objection after slide 11, and answering it first is much stronger than being caught.
-
-> "This asks which feature family actually carries the information. And you'll notice
-> immediately that every number here is negative, where slide 11 was positive. That's
-> because this table is run under leave-one-subject-out only.
->
-> That was deliberate: the question here is whether a feature family works for a *new*
-> person. Under a random split every family also gets the benefit of having seen that
-> person before, so it would partly be ranking them on how well each one identifies the
-> participant rather than predicts glucose. Holding the person out removes that.
->
-> The honest cost is in the small table below. We ran the fused set under all three
-> protocols, but the four individual feature sets only under leave-one-out. So these
-> rows aren't directly comparable to Tables III and IV of the paper, which are computed
-> under the authors' random split. Those eight remaining runs are about two and a half
-> hours of compute and they're first on our further-work list.
->
-> On the numbers themselves: the whole spread is 0.036 in R-squared, which is small.
-> We're not claiming PPG beats ECG on a 0.03 gap. And 33 features beat 193, which is
-> usually what fitting noise looks like."
-
----
-
-## Slide 15 — Results V, degeneracy (65 s)
-
-This is your most original contribution. Don't rush it.
-
-> "This one we found by accident. Two things looked wrong: the weighted average and the
-> plain average were giving identical answers to three decimals, and every fuzzy density
-> came out at exactly 0.01, which is the floor we clip at.
->
-> So we worked out what happens algebraically when all densities are equal. The measure
-> becomes symmetric, and the Choquet integral collapses to a fixed order statistic — the
-> weights depend only on rank, not on which model is which. The table shows it: at a
-> density of 0.01, 89.5 percent of the weight lands on the *smallest* of the three
-> predictions. As density goes to zero, the whole integral becomes the minimum function.
->
-> We checked against the saved predictions: the correlation between our Choquet output
-> and the plain minimum is 0.998. The fusion step had quietly stopped fusing.
->
-> The symmetric-measure result itself is known, it's in Grabisch. What we're adding is
-> identifying it as a practical failure mode of estimating densities from model
-> performance, with a diagnostic you can run."
-
----
-
-## Slide 16 — Future Work (45 s)
+## Slide 14 — Future Work (45 s)
 
 > "Four directions. Reframe from regression to classification, because the biology
 > supports detecting dangerous highs and lows better than reading exact numbers, and
@@ -286,14 +237,14 @@ This is your most original contribution. Don't rush it.
 
 ---
 
-## Slide 17 — Conclusion and References (40 s)
+## Slide 15 — Conclusion and References (40 s) Spatio Temporal Feature Fusion + Weight Based Croquet Integral Multimodel
 
 > "To summarise. We rebuilt the method in full and ran it on 30,830 windows from ten
 > people. Under the paper's protocol we reproduce a positive result, somewhat below the
 > accuracy they report, and we've explained why. Under stricter protocols the
 > performance does not hold, which tells us the method currently works per-person rather
 > than across people. And we found the fusion operator had degenerated into a minimum.
->
+> 
 > Thank you — happy to take questions."
 
 ---
