@@ -29,18 +29,19 @@ module.exports = function build() {
       ["6.", "Problem Formulation — Fuzzy Measures and the Choquet Integral"],
       ["7.", "Methodology I — Pipeline, Signals and Dataset"],
       ["8.", "Methodology II — Feature Extraction and Selection"],
-      ["9.", "Results I — Performance Under Three Split Protocols"],
-      ["10.", "Results II — Parkes Error Grid and Prediction Trace"],
-      ["11.", "Results III — Feature-Set Ablation"],
-      ["12.", "Results IV — Degeneracy of the Fusion Operator"],
-      ["13.", "Future Work and Expected Outcomes"],
-      ["14.", "Conclusion and References"],
+      ["9.", "Results I — Reproducing the Published Result"],
+      ["10.", "Results II — The Effect of the Evaluation Protocol"],
+      ["11.", "Results III — Parkes Error Grid and Prediction Trace"],
+      ["12.", "Results IV — Feature-Set Ablation"],
+      ["13.", "Results V — Degeneracy of the Fusion Operator"],
+      ["14.", "Future Work and Expected Outcomes"],
+      ["15.", "Conclusion and References"],
     ];
     items.forEach(([n, t], i) => {
-      const col = i < 7 ? 0 : 1;
-      const row = i % 7;
+      const col = i < 8 ? 0 : 1;
+      const row = i % 8;
       const x = M + 0.4 + col * 6.1;
-      const y = 1.72 + row * 0.55;
+      const y = 1.66 + row * 0.53;
       s.addText(n, { x, y, w: 0.5, h: 0.42, isTextBox: true, margin: 0,
         fontFace: FONT, fontSize: 13, color: BLACK, align: "right",
         valign: "middle" });
@@ -76,8 +77,6 @@ module.exports = function build() {
       + "establish that the absolute concentration can be recovered from the waveform, "
       + "which is a regression problem. This project evaluates the regression claim.",
     ]);
-    takeaway(s, "A painless, continuous, zero-consumable glucose monitor would remove a "
-                + "lifelong burden — if the signal genuinely carries the information.");
   }
 
   // ---- 4  LITERATURE SURVEY I --------------------------------------------
@@ -100,8 +99,6 @@ module.exports = function build() {
       + "their recordings, which are private. The result had therefore never been "
       + "evaluated on a cohort the authors did not themselves select.",
     ]);
-    takeaway(s, "Survey takeaway: the reported accuracy is the strongest in its class, "
-                + "and has never been independently verified.");
   }
 
   // ---- 5  LITERATURE SURVEY II -------------------------------------------
@@ -122,8 +119,6 @@ module.exports = function build() {
        "Aggregation theory: a Choquet integral taken with respect to a symmetric fuzzy measure\n"
        + "reduces to an ordered weighted average. This bounds what we claim as novel in Section 12."],
     ], M, 1.72, 11.85, { colW: [3.7, 8.15], rowH: 1.12, size: 11 });
-    takeaway(s, "Survey takeaway: the first two studies motivate our three-protocol design; "
-                + "the third establishes which part of our theoretical result is prior work.");
   }
 
   // ---- 6  RESEARCH GAPS --------------------------------------------------
@@ -157,8 +152,6 @@ module.exports = function build() {
       s.addText(t, { x: M + 0.45, y: y + 0.3, w: 11.4, h: 0.6, isTextBox: true, margin: 0,
         fontFace: FONT, fontSize: 11, color: BLACK });
     });
-    takeaway(s, "Each gap above corresponds directly to one of the findings reported in "
-                + "Sections 9 to 12.", H - 1.0);
   }
 
   // ---- 7  AIM AND OBJECTIVES ---------------------------------------------
@@ -248,9 +241,6 @@ module.exports = function build() {
       ["Glucose range", "2.2 – 21.5 mmol/L"],
       ["Mean / standard deviation", "7.17 / 2.519 mmol/L"],
     ], 8.25, 3.75, 4.35, { colW: [2.55, 1.8], rowH: 0.33, size: 10.5, boldRow: 5 });
-    takeaway(s, "The 2.519 mmol/L standard deviation is the RMSE of a model that always "
-                + "predicts the mean. That is the no-skill baseline against which every "
-                + "result in this work is reported.");
   }
 
   // ---- 10  METHODOLOGY II ------------------------------------------------
@@ -275,16 +265,43 @@ module.exports = function build() {
     ], M, 4.55, 11.85, 0.45, 11.5);
     equation(s, "eq5_rfe", 0.95, 5.1, 6.2);
     equation(s, "eq6_lasso", 7.6, 5.15, 4.4);
-    takeaway(s, "193 features = 80 ECG temporal + 80 PPG temporal + 19 ECG and 14 PPG "
-                + "morphological; selection typically retains ~10. Validation: median "
-                + "QTc 0.405 s against a textbook normal of 0.35–0.44 s.", H - 0.95);
   }
 
   // ---- 11  RESULTS I -----------------------------------------------------
   {
-    const s = section(9, "Results I — Performance Under Three Split Protocols");
-    subhead(s, "Fused feature set (193 features), 30,830 windows, 10 participants. "
-               + "Each method is reported beside the baseline computed on the same folds.");
+    const s = section(9, "Results I — Reproducing the Published Result");
+    subhead(s, "Evaluated under the source paper's own protocol: a random split at the "
+               + "window level. 193 features, 30,830 windows, 10 participants.");
+    table(s, [
+      ["Method", "R²", "RMSE (mmol/L)", "MARD (%)", "Zone A (%)", "Zone A+B (%)"],
+      ["Random Forest", "+0.194", "2.262", "25.72", "53.04", "93.18"],
+      ["Bagging", "+0.194", "2.262", "25.72", "53.07", "93.18"],
+      ["Gradient Boosting", "+0.101", "2.389", "27.48", "48.78", "92.25"],
+      ["Choquet fusion", "+0.149", "2.324", "24.86", "52.87", "93.75"],
+      ["No-skill baseline", "−0.000", "2.520", "29.14", "45.34", "90.89"],
+      ["Reported by the authors [1]", "not reported", "1.490", "13.42", "80.09", "99.49"],
+    ], M, 1.72, 11.85, { colW: [3.3, 1.35, 1.9, 1.5, 1.6, 2.2],
+                         rowH: 0.34, size: 11, align: "center", boldRow: 6 });
+    card(s, M, 4.42, 5.85, 2.0, "What reproduces", [
+      "Every model clears the no-skill baseline, and R² is positive throughout. The "
+      + "pipeline learns a real relationship between the waveform and glucose.",
+      "The fusion carries the best clinical score of our methods, 93.75% in Zones A+B, "
+      + "which is the ordering the paper reports.",
+    ], 11);
+    card(s, 6.75, 4.42, 5.85, 2.0, "What falls short of the paper", [
+      "Our RMSE of 2.26 sits above the 1.49 the authors report, and our Zone A+B of "
+      + "93.8% below their 99.5%.",
+      "Two differences account for most of the gap: a different cohort, since theirs is "
+      + "private, and a hand-crafted morphological branch in place of their ResNet, as "
+      + "no GPU was available.",
+    ], 11);
+  }
+
+  // ---- 12  RESULTS II ----------------------------------------------------
+  {
+    const s = section(10, "Results II — The Effect of the Evaluation Protocol");
+    subhead(s, "The same data and the same models, split three different ways. Each "
+               + "method is shown beside the baseline computed on the same folds.");
     table(s, [
       ["Split protocol", "Method", "R²", "RMSE", "MARD (%)", "Zone A (%)", "Zone A+B (%)"],
       ["1. Random window", "Choquet fusion", "+0.149", "2.324", "24.86", "52.87", "93.75"],
@@ -295,40 +312,44 @@ module.exports = function build() {
       ["", "No-skill baseline", "−0.035", "2.564", "29.74", "44.14", "90.57"],
     ], M, 1.75, 11.85, { colW: [2.85, 2.2, 1.15, 1.15, 1.35, 1.5, 1.65],
                          rowH: 0.31, size: 10.5, align: "center", textCols: 2 });
-    equation(s, "metrics", 1.0, 4.15, 5.6);
-    card(s, 7.3, 4.1, 5.3, 1.75, "Reading the table", [
-      "R² = 0 denotes performance identical to predicting the mean; negative values denote "
-      + "worse. It is the only metric here that exposes a model which has learned nothing.",
-      "Under both leakage-controlled protocols, every method falls behind the "
-      + "baseline, the fusion included.",
-    ], 11);
-    takeaway(s, "Leave-one-subject-out is not worse than subject-aware because it trains on "
-                + "9 of 10 participants rather than 4 of 5; the baseline shifts identically. "
-                + "The claim is not monotonic degradation, but that both honest splits "
-                + "place every method behind the baseline.", H - 1.0);
-  }
-
-  // ---- 12  RESULTS II ----------------------------------------------------
-  {
-    const s = section(10, "Results II — Parkes Error Grid and Prediction Trace");
-    figure(s, "fig10_parkes_subject_aware.png", 0.85, 1.3, 4.35, 4.45);
-    figure(s, "fig09_timeseries_subject_aware_c2s04.png", 5.5, 1.45, 7.2, 3.05);
-    body(s, [
-      "A model that had learned the glucose relationship would produce a diagonal cloud "
-      + "along the identity line of the error grid, and a prediction trace that tracked "
-      + "the reference.",
-      "The observed result is a horizontal band: irrespective of whether the reference "
-      + "value was 4 or 20 mmol/L, the prediction lies between approximately 6 and 9. "
-      + "The trace on the right shows the same behaviour over seventeen days.",
-      "That same flat band attains 89.4% in Parkes Zones A+B.",
-    ], 5.5, 4.6, 7.2, 1.5, 11);
-    takeaway(s, "Equivalent to Figs. 9 and 10 of the source paper. The clinical zone metric "
-                + "cannot distinguish this from a working model.", H - 0.95);
+    equation(s, "metrics", 1.0, 4.25, 5.6);
+    card(s, 7.3, 4.2, 5.3, 2.05, "What the three protocols ask", [
+      "Protocol 1 allows windows from the same person into both the training and the "
+      + "test set. Protocols 2 and 3 never do.",
+      "So protocol 1 asks: how well does this work for a person the model has already "
+      + "seen? Protocols 2 and 3 ask: how well does it work for a new person?",
+      "Both are fair questions. The first is the one the paper reports, and it is the "
+      + "one our Results I reproduces.",
+    ], 10.5);
   }
 
   // ---- 13  RESULTS III ---------------------------------------------------
   {
-    const s = section(11, "Results III — Feature-Set Ablation");
+    const s = section(11, "Results III — Parkes Error Grid and Prediction Trace");
+    subhead(s, "Participant c2s04 over seventeen days, under each of the two protocols. "
+               + "Red is the CGM reference, blue the prediction.");
+    figure(s, "fig09_timeseries_random_window_c2s04.png", 0.8, 1.68, 6.05, 2.5);
+    figure(s, "fig09_timeseries_subject_aware_c2s04.png", 6.95, 1.68, 6.05, 2.5);
+    s.addText("Random window split: the prediction follows the reference up and down.", {
+      x: 0.8, y: 4.26, w: 6.05, h: 0.34, isTextBox: true, margin: 0,
+      fontFace: FONT, fontSize: 10.5, bold: true, color: BLACK, align: "center" });
+    s.addText("Subject-aware split: the prediction flattens toward the mean.", {
+      x: 6.95, y: 4.26, w: 6.05, h: 0.34, isTextBox: true, margin: 0,
+      fontFace: FONT, fontSize: 10.5, bold: true, color: BLACK, align: "center" });
+    figure(s, "fig10_parkes_random_window.png", 1.5, 4.68, 2.3, 2.3);
+    card(s, 4.3, 4.72, 8.3, 2.15, "Reading the two traces", [
+      "On the left the model tracks the participant's daily rises and falls, because it "
+      + "has seen other windows from this same participant during training. This is the "
+      + "condition under which the published result is obtained.",
+      "On the right the participant was held out entirely, and the prediction collapses "
+      + "toward the population average of about 7 mmol/L.",
+      "The Parkes grid, inset, places 93.7% of the left-hand predictions in Zones A+B.",
+    ], 10.5);
+  }
+
+  // ---- 13  RESULTS III ---------------------------------------------------
+  {
+    const s = section(12, "Results IV — Feature-Set Ablation");
     subhead(s, "Every feature set evaluated under leave-one-subject-out with Choquet fusion");
     table(s, [
       ["Feature set", "Features", "R²", "RMSE (mmol/L)", "Zone A+B (%)"],
@@ -359,12 +380,11 @@ module.exports = function build() {
       s.addText(t, { x: 8.4, y: y + 0.32, w: 4.2, h: 0.68, isTextBox: true, margin: 0,
         fontFace: FONT, fontSize: 10, color: BLACK });
     });
-    takeaway(s, "Equivalent to Tables III and IV of the source paper.", H - 0.95);
   }
 
   // ---- 14  RESULTS IV ----------------------------------------------------
   {
-    const s = section(12, "Results IV — Degeneracy of the Fusion Operator");
+    const s = section(13, "Results V — Degeneracy of the Fusion Operator");
     body(s, [
       "Two anomalies appeared in the output: the weighted average and the plain average "
       + "agreed to three decimal places (3.927 against 3.927), and every fuzzy density "
@@ -388,15 +408,11 @@ module.exports = function build() {
       + "cannot generalise, so the densities floor legitimately. The fusion degenerates "
       + "precisely when it is most needed.",
     ], 10.5);
-    takeaway(s, "The symmetric-measure/OWA equivalence is established theory. The "
-                + "contribution here is its identification as a practical failure mode of "
-                + "performance-based density estimation, with a closed-form diagnostic.",
-             H - 0.9);
   }
 
   // ---- 15  FUTURE WORK ---------------------------------------------------
   {
-    const s = section(13, "Future Work and Expected Outcomes");
+    const s = section(14, "Future Work and Expected Outcomes");
     subhead(s, "Future work");
     const fut = [
       ["Reframe from regression to classification.",
@@ -431,14 +447,11 @@ module.exports = function build() {
       + "metrics require a reported baseline.",
       "• A reproducibility defect reported in a widely used nonlinear-features library.",
     ], 10.5);
-    takeaway(s, "A short reproducibility paper is planned. Candidate venues: IEEE Journal "
-                + "of Biomedical and Health Informatics, or the ML Reproducibility Challenge.",
-             H - 0.85);
   }
 
   // ---- 16  CONCLUSION AND REFERENCES -------------------------------------
   {
-    const s = section(14, "Conclusion and References");
+    const s = section(15, "Conclusion and References");
     card(s, M, 1.3, 11.85, 1.5, "Conclusion", [
       "The SFF-WCIM method was rebuilt in full and evaluated on 30,830 paired ECG and PPG "
       + "windows from ten participants. Under the source paper's own protocol it learns "
