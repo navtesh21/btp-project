@@ -417,6 +417,111 @@ exactly the combination the paper requires.
 > Most published papers in this field never report this number. We report it beside
 > every single result.
 
+## 5.4 How long was each person actually recorded for?
+
+There are three different answers, and they are nowhere near each other.
+
+### Tenure 1: how long the glucose monitor ran
+
+Each participant wore a Dexcom continuous glucose monitor for a full 90-day study
+period. The device reports a value every 5 minutes, day and night.
+
+90 days x 24 hours x 12 readings per hour = 25,920 readings per person, which
+matches what is in the files almost exactly.
+
+| Person | CGM readings | First | Last | Days |
+|---|---|---|---|---|
+| c1s01 | 25,356 | 2022-04-02 | 2022-06-30 | 90.0 |
+| c1s02 | 21,167 | 2022-03-23 | 2022-06-06 | 76.0 |
+| c1s03 | 25,349 | 2022-03-20 | 2022-06-17 | 90.0 |
+| c1s04 | 4,634 | 2022-06-02 | 2022-06-20 | **18.3** |
+| c1s05 | 25,260 | 2022-04-15 | 2022-07-13 | 90.0 |
+| c2s01 | 25,001 | 2022-07-03 | 2022-09-30 | 90.0 |
+| c2s02 | 25,662 | 2022-07-16 | 2022-10-13 | 90.0 |
+| c2s03 | 24,287 | 2022-07-23 | 2022-10-20 | 89.9 |
+| c2s04 | 25,496 | 2022-08-20 | 2022-11-17 | 90.0 |
+| c2s05 | 24,973 | 2022-09-15 | 2022-12-13 | 90.0 |
+| **Total** | **227,185** | | | **814 days** |
+
+So across the ten people the study covers **814 days**, or about two and a quarter
+years of glucose monitoring. The recordings run from March to December 2022, and no
+two people overlap much, which is why the daylight-saving problem in section 6.4 hit
+only c2s04.
+
+c1s04 is the one exception: their monitor ran for 18 days rather than 90.
+
+### Tenure 2: how long they wore the heart sensors
+
+Here is the twist. Nobody wears a chest strap and a wristband for 90 days straight.
+The Zephyr chest strap and the Empatica E4 wristband were worn in **sessions**,
+typically a few hours at a time, spread over a few weeks.
+
+| Person | Wearable sessions span | Windows we got | Hours of paired signal |
+|---|---|---|---|
+| c1s01 | 20.1 days | 2,541 | 11.3 |
+| c1s02 | 17.0 days | 3,143 | 14.0 |
+| c1s03 | 13.5 days | 3,110 | 13.8 |
+| c1s04 | 16.2 days | 2,500 | 11.1 |
+| c1s05 | 15.8 days | 3,345 | 14.9 |
+| c2s01 | **30.0 days** | 3,423 | 15.2 |
+| c2s02 | 16.4 days | 2,719 | 12.1 |
+| c2s03 | 16.5 days | 2,654 | 11.8 |
+| c2s04 | 17.9 days | 3,754 | 16.7 |
+| c2s05 | 14.9 days | 3,641 | 16.2 |
+| **Total** | median **16.4 days** | **30,830** | **137 hours** |
+
+### Tenure 3: how much signal we can actually use
+
+A training example needs all three of those at the same moment: a glucose reading,
+16 clean seconds of ECG before it, and 16 clean seconds of PPG before it. That only
+happens where the CGM and both wearables overlap.
+
+```
+  CGM        ████████████████████████████████████████████  90 days, always on
+  Chest      ░░██░░░░██░██░░░░░░░██░░██░░░░░░░░░░░░░░░░░░  worn in sessions
+  Wrist      ░░██░░░░░█░██░░░░░░░██░░░█░░░░░░░░░░░░░░░░░░  worn in sessions
+             ──────────────────────────────────────────────
+  Usable     ..XX........X.XX.......XX...X................  the overlap only
+```
+
+227,185 CGM readings went in. 30,830 came out. That is **13.6%**.
+
+The other 86.4% are glucose readings taken while the person was not wearing one or
+both of the sensors, or while the signal was too noisy to use.
+
+Those 30,830 windows are 16 seconds each, so the total amount of heart signal actually
+feeding the models is:
+
+```
+30,830 x 16 seconds = 493,280 seconds = 137 hours = 5.7 days
+```
+
+Set that against the 814 days of glucose monitoring. The study collected over two
+years of glucose readings and under six days of matched heart signal. That is the real
+size of this dataset, and it is worth saying out loud when you present, because
+"30,830 examples" sounds a great deal larger than "137 hours from 10 people".
+
+> ### Why c1s04 looks strange
+>
+> c1s04 has by far the fewest CGM readings (4,634) but by far the best yield (53.9%
+> against about 13% for everyone else). Both facts have the same cause: their monitor
+> only ran for the 18 days during which they were also wearing the sensors. Everyone
+> else's monitor ran for 90 days, most of which they spent not wearing a chest strap.
+>
+> The yield percentage is therefore not a quality measure. It mostly tells you how
+> much of the CGM period the person spent wired up.
+
+### Does 10 people and 137 hours make this dataset too small?
+
+It is small, and we say so plainly. Two things follow from that.
+
+1. It is the same order of size as the studies it is being compared against. The
+   review cited in Part 4 notes that most studies in this field use fewer than 30
+   subjects, and the paper we reproduced used a private cohort of comparable size.
+2. Small data makes a *positive* result untrustworthy. It does not rescue a *negative*
+   one. Our finding is that the method does not beat a constant predictor. More people
+   would make that conclusion firmer, not reverse it.
+
 ---
 
 # Part 6 — Step one: turning recordings into examples
@@ -445,10 +550,105 @@ Why 16 seconds? That is about 20 heartbeats, which is what the paper specifies.
                    the number 8.3)
 ```
 
-At 250 Hz, 16 seconds of ECG is **4,000 numbers**. At 64 Hz, 16 seconds of PPG is
-**1,024 numbers**.
+### The arithmetic behind those numbers
 
-We did this for every usable glucose reading across all 10 people: **30,830 examples**.
+**Sampling rate** is how many times per second a device measures the signal. It is
+measured in hertz (Hz). A rate of 250 Hz means 250 measurements every second. So the
+number of measurements you get is simply the rate multiplied by the time:
+
+```
+    N  =  fs  x  T
+
+    where   N  = how many numbers you end up with
+            fs = sampling rate, in measurements per second (Hz)
+            T  = length of the window, in seconds
+```
+
+Putting our two devices through it:
+
+```
+    ECG:   250 Hz  x  16 s  =  4,000 numbers
+    PPG:    64 Hz  x  16 s  =  1,024 numbers
+```
+
+That is the whole of it. The ECG gives about four times as many numbers as the PPG for
+the same 16 seconds, purely because the chest strap samples about four times faster
+(250 / 64 = 3.9). It is not that the ECG covers more time; both cover exactly the same
+16 seconds of the same heartbeat.
+
+### Why 16 seconds, and not 10 or 30?
+
+Three reasons line up on the same number.
+
+1. It holds about 20 heartbeats. A resting heart runs at roughly 75 beats per
+minute, which is 75/60 = 1.25 beats per second:
+
+```
+    1.25 beats/s  x  16 s  =  20 beats
+```
+
+Features like heart-rate variability are meaningless from two or three beats. Twenty
+gives them something to average over. This is the reason the paper itself states.
+
+2. It makes the PPG length an exact power of two.
+
+```
+    1,024 = 2^10
+```
+
+3. That power of two survives the wavelet transform cleanly. Part 7.2 explains the
+wavelet transform properly; the part that matters here is that we split the signal
+seven times, and each split halves the length. To divide evenly seven times a signal
+needs a length divisible by 2^7 = 128:
+
+```
+    1,024 / 128 = 8     exactly
+    4,000 / 128 = 31.25  not exact
+```
+
+The PPG divides perfectly. The ECG does not, so the db4 wavelet pads the ends slightly,
+which is standard and harmless. Had we picked 10 seconds we would have had 640 PPG
+samples, and 640/128 = 5, which also works; 15 seconds would give 960, and 960/128 =
+7.5, which does not. Sixteen is the shortest window that holds about 20 beats and is
+also a clean power of two.
+
+### A detail that bites: the PPG cannot see fast things
+
+The **Nyquist limit** says a signal sampled at fs Hz can only represent frequencies up
+to fs/2:
+
+```
+    ECG:  250 Hz  ->  Nyquist  125 Hz
+    PPG:   64 Hz  ->  Nyquist   32 Hz
+```
+
+This is why our two filters differ. The paper band-passes ECG at 0.5-40 Hz. You cannot ask for 40 Hz from a 64 Hz signal and mean anything by it, because 40 Hz is
+above what the wristband can represent. We use 0.5 to 8 Hz for PPG instead, which is
+comfortably inside its limit and still covers the pulse shape. This is a deviation from
+the paper forced by the hardware, and it is documented in the ablation.
+
+### Where 30,830 comes from
+
+We did this for every glucose reading that had usable ECG *and* usable PPG behind it:
+
+```
+    227,185  CGM readings in the ten files
+  -  196,355  with no wearable signal, or too noisy
+    ────────
+     30,830  usable examples          (13.6% of the readings)
+```
+
+Section 5.4 explains why the loss is so large: the glucose monitor ran for 90 days per
+person while the chest strap and wristband were worn for only a few hours at a time.
+
+Laid end to end, those examples are:
+
+```
+    30,830  x  16 s  =  493,280 s  =  137 hours  =  5.7 days of heart signal
+```
+
+And each of those 30,830 windows will shortly be turned from 4,000 + 1,024 raw numbers
+into just **193** numbers. That is Part 7.
 
 ## 6.2 Cleaning the signal
 
